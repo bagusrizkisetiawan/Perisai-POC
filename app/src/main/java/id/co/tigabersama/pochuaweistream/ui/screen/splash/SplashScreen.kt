@@ -24,7 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import id.co.tigabersama.pochuaweistream.R
-import id.co.tigabersama.pochuaweistream.style.backgroundColor
+import id.co.tigabersama.pochuaweistream.ui.components.backgroundColor
 import kotlinx.coroutines.delay
 
 @Composable

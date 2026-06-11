@@ -78,34 +78,32 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.materials.HazeMaterials
-import id.co.tigabersama.pochuaweistream.auth.AuthManager
-import id.co.tigabersama.pochuaweistream.livekit.LivekitApiService
-import id.co.tigabersama.pochuaweistream.livekit.LivekitViewModel
-import id.co.tigabersama.pochuaweistream.livekit.LivekitViewModelFactory
-import id.co.tigabersama.pochuaweistream.style.backgroundColor
-import id.co.tigabersama.pochuaweistream.style.colorPrimary
-import id.co.tigabersama.pochuaweistream.style.dangerColor
-import id.co.tigabersama.pochuaweistream.style.successColor
-import id.co.tigabersama.pochuaweistream.ui.component.AlertStream
-import id.co.tigabersama.pochuaweistream.ui.component.ConnectionStatusBar
-import id.co.tigabersama.pochuaweistream.ui.component.DialogCall
-import id.co.tigabersama.pochuaweistream.ui.component.DialogMap
-import id.co.tigabersama.pochuaweistream.ui.component.DialogResolution
-import id.co.tigabersama.pochuaweistream.ui.component.OsmdroidMapView
-import id.co.tigabersama.pochuaweistream.ui.screen.setting.AppSettingsManager
+import id.co.tigabersama.pochuaweistream.data.remote.api.ApiConfig
+import id.co.tigabersama.pochuaweistream.data.remote.api.ApiService
+import id.co.tigabersama.pochuaweistream.ui.viewmodel.LivekitViewModel
+import id.co.tigabersama.pochuaweistream.ui.viewmodel.LivekitViewModelFactory
+import id.co.tigabersama.pochuaweistream.ui.components.backgroundColor
+import id.co.tigabersama.pochuaweistream.ui.components.colorPrimary
+import id.co.tigabersama.pochuaweistream.ui.components.dangerColor
+import id.co.tigabersama.pochuaweistream.ui.components.successColor
+import id.co.tigabersama.pochuaweistream.ui.components.AlertStream
+import id.co.tigabersama.pochuaweistream.ui.components.ConnectionStatusBar
+import id.co.tigabersama.pochuaweistream.ui.components.DialogCall
+import id.co.tigabersama.pochuaweistream.ui.components.DialogMap
+import id.co.tigabersama.pochuaweistream.ui.components.DialogResolution
+import id.co.tigabersama.pochuaweistream.ui.components.OsmdroidMapView
+import id.co.tigabersama.pochuaweistream.data.local.AppSettingsManager
 import id.co.tigabersama.pochuaweistream.ui.theme.POCHuaweiStreamTheme
-import id.co.tigabersama.pochuaweistream.user.UserApiService
-import id.co.tigabersama.pochuaweistream.user.UserViewModel
-import id.co.tigabersama.pochuaweistream.user.UserViewModelFactory
+import id.co.tigabersama.pochuaweistream.ui.viewmodel.UserViewModel
+import id.co.tigabersama.pochuaweistream.ui.viewmodel.UserViewModelFactory
 import id.co.tigabersama.pochuaweistream.utils.HuaweiLocationHelper
 import id.co.tigabersama.pochuaweistream.utils.ILocationHelper
 import id.co.tigabersama.pochuaweistream.utils.NativeLocationHelper
-import id.co.tigabersama.surveillance.api.DroneApiService
-import id.co.tigabersama.surveillance.centrifugo.BatteryData
-import id.co.tigabersama.surveillance.centrifugo.CentrifugoClientManager
-import id.co.tigabersama.surveillance.centrifugo.CentrifugoConnectionState
-import id.co.tigabersama.surveillance.centrifugo.DroneData
-import id.co.tigabersama.surveillance.centrifugo.getBatteryStatus
+import id.co.tigabersama.pochuaweistream.domain.model.BatteryData
+import id.co.tigabersama.pochuaweistream.realtime.CentrifugoClientManager
+import id.co.tigabersama.pochuaweistream.realtime.CentrifugoConnectionState
+import id.co.tigabersama.pochuaweistream.domain.model.PocData
+import id.co.tigabersama.pochuaweistream.domain.model.getBatteryStatus
 import io.livekit.android.compose.local.RoomScope
 import io.livekit.android.compose.state.rememberTracks
 import io.livekit.android.room.participant.RemoteParticipant
@@ -128,9 +126,9 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
     // Services & Managers
     private lateinit var centrifugoManager: CentrifugoClientManager
     private lateinit var locationHelper: ILocationHelper
-    private val authManager: AuthManager by lazy { AuthManager.getInstance(context = this) }
-    private val apiService: DroneApiService by lazy {
-        authManager.getRetrofit().create(DroneApiService::class.java)
+    private val authManager: ApiConfig by lazy { ApiConfig.getInstance(context = this) }
+    private val apiService: ApiService by lazy {
+        authManager.apiService
     }
 
     // Camera & Stream Variables
@@ -192,10 +190,10 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
             sendToCentrifugo()
         }
 
-        //  Setup Service menggunakan AuthManager
-        val authManager = AuthManager.getInstance(this)
-        val livekitApiService = authManager.getRetrofit().create(LivekitApiService::class.java)
-        val userApiService = authManager.getRetrofit().create(UserApiService::class.java)
+        //  Setup Service menggunakan ApiConfig
+        val authManager = ApiConfig.getInstance(this)
+        val livekitApiService = authManager.apiService
+        val userApiService = authManager.apiService
 
         fetchRtmpUrl()
 
@@ -377,16 +375,16 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
     private fun fetchRtmpUrl() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val response = apiService.getDroneInfo()
+                val response = apiService.getPocInfo()
                 val accessToken = authManager.getCurrentAccessToken()
                 val appSettings = AppSettingsManager.getInstance(this@RCScreenActivity)
                 val baseRtmpUrl = appSettings.getRtmpUrl()
                 if (response.isSuccessful) {
-                    val droneId = response.body()?.data?.ID
-                    if (droneId != null) {
+                    val pocId = response.body()?.data?.ID
+                    if (pocId != null) {
                         withContext(Dispatchers.Main) {
                             rtmpUrl =
-                                "${baseRtmpUrl}/$droneId?user=drone&pass=$accessToken"
+                                "${baseRtmpUrl}/$pocId?user=drone&pass=$accessToken"
                             Log.d("RTMP_URL", "Berhasil mengambil URL: $rtmpUrl")
                         }
                     } else {
@@ -440,7 +438,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
     private fun sendToCentrifugo() {
         val loc = currentLocation
         if (centrifugoManager.connectionState.value == CentrifugoConnectionState.CONNECTED) {
-            val droneData = DroneData(
+            val pocData = PocData(
                 pitch = pitch.toDouble(),
                 roll = roll.toDouble(),
                 yaw = yaw.toDouble(),
@@ -457,7 +455,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                     batteryStatus = getBatteryStatus(batteryLevel)
                 )
             )
-            centrifugoManager.updateDroneData(droneData)
+            centrifugoManager.updatePocData(pocData)
         }
     }
 
@@ -559,8 +557,8 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
         onStartStream: (width: Int, height: Int, bitrate: Int) -> Unit,
         onStopStream: () -> Unit,
         onSwitchCamera: () -> Unit,
-        livekitApiService: LivekitApiService,
-        userApiService: UserApiService,
+        livekitApiService: ApiService,
+        userApiService: ApiService,
         livekitShouldConnect: Boolean,
         livekitIsMuted: Boolean,
         livekitIsSpeakerMuted: Boolean,         // ← fix nama konsisten
@@ -705,7 +703,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                     location?.longitude ?: 110.4091
                                 ),
                                 deviceMarkerIcon = R.drawable.ic_map,
-                                droneYaw = yaw
+                                pocYaw = yaw
                             )
                         }
                         Box(
@@ -1000,7 +998,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                         location?.longitude ?: 110.4091
                     ),
                     deviceMarkerIcon = R.drawable.ic_map,
-                    droneYaw = yaw  
+                    pocYaw = yaw  
                 )
             }
 

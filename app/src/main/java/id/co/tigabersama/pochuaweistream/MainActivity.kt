@@ -18,7 +18,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import id.co.tigabersama.pochuaweistream.ui.screen.home.HomeScreen
-import id.co.tigabersama.pochuaweistream.ui.screen.setting.AppSettingsManager
+import id.co.tigabersama.pochuaweistream.data.local.AppSettingsManager
 import id.co.tigabersama.pochuaweistream.ui.screen.setting.SettingsScreen
 import id.co.tigabersama.pochuaweistream.ui.screen.splash.SplashScreen
 import id.co.tigabersama.pochuaweistream.ui.theme.POCHuaweiStreamTheme

@@ -62,12 +62,12 @@ import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.materials.HazeMaterials
 import id.co.tigabersama.pochuaweistream.R
 import id.co.tigabersama.pochuaweistream.RCScreenActivity
-import id.co.tigabersama.pochuaweistream.style.backgroundColor
-import id.co.tigabersama.pochuaweistream.style.colorPrimary
-import id.co.tigabersama.pochuaweistream.ui.component.QRCodeScannerDialog
-import id.co.tigabersama.pochuaweistream.ui.screen.setting.AppSettingsManager
-import id.co.tigabersama.pochuaweistream.auth.AuthManager
-import id.co.tigabersama.pochuaweistream.auth.AuthViewModel
+import id.co.tigabersama.pochuaweistream.ui.components.backgroundColor
+import id.co.tigabersama.pochuaweistream.ui.components.colorPrimary
+import id.co.tigabersama.pochuaweistream.ui.components.QRCodeScannerDialog
+import id.co.tigabersama.pochuaweistream.data.local.AppSettingsManager
+import id.co.tigabersama.pochuaweistream.data.remote.api.ApiConfig
+import id.co.tigabersama.pochuaweistream.ui.viewmodel.AuthViewModel
 
 @Composable
 fun HomeScreen(authViewModel: AuthViewModel = viewModel(), onNavigateToSettings: () -> Unit) {
@@ -371,7 +371,7 @@ fun HomeScreen(authViewModel: AuthViewModel = viewModel(), onNavigateToSettings:
                         settings.setRtmpUrl(rtmp)
                         settings.seLivekitUrl(livekit)
 
-                        AuthManager.getInstance(ctx).recreate(ctx)
+                        ApiConfig.getInstance(ctx).recreate(ctx)
 
                         authViewModel.loginWithQR(token)
 
