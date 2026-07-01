@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -65,6 +66,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
@@ -78,38 +81,38 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.materials.HazeMaterials
+import id.co.tigabersama.pochuaweistream.data.local.AppSettingsManager
 import id.co.tigabersama.pochuaweistream.data.remote.api.ApiConfig
 import id.co.tigabersama.pochuaweistream.data.remote.api.ApiService
-import id.co.tigabersama.pochuaweistream.ui.viewmodel.LivekitViewModel
-import id.co.tigabersama.pochuaweistream.ui.viewmodel.LivekitViewModelFactory
-import id.co.tigabersama.pochuaweistream.ui.components.backgroundColor
-import id.co.tigabersama.pochuaweistream.ui.components.colorPrimary
-import id.co.tigabersama.pochuaweistream.ui.components.dangerColor
-import id.co.tigabersama.pochuaweistream.ui.components.successColor
+import id.co.tigabersama.pochuaweistream.domain.model.BatteryData
+import id.co.tigabersama.pochuaweistream.domain.model.PocData
+import id.co.tigabersama.pochuaweistream.domain.model.getBatteryStatus
+import id.co.tigabersama.pochuaweistream.realtime.CentrifugoClientManager
+import id.co.tigabersama.pochuaweistream.realtime.CentrifugoConnectionState
 import id.co.tigabersama.pochuaweistream.ui.components.AlertStream
 import id.co.tigabersama.pochuaweistream.ui.components.ConnectionStatusBar
 import id.co.tigabersama.pochuaweistream.ui.components.DialogCall
 import id.co.tigabersama.pochuaweistream.ui.components.DialogMap
 import id.co.tigabersama.pochuaweistream.ui.components.DialogResolution
 import id.co.tigabersama.pochuaweistream.ui.components.OsmdroidMapView
-import id.co.tigabersama.pochuaweistream.data.local.AppSettingsManager
+import id.co.tigabersama.pochuaweistream.ui.components.SwipeToStopButton
+import id.co.tigabersama.pochuaweistream.ui.components.backgroundColor
+import id.co.tigabersama.pochuaweistream.ui.components.colorPrimary
+import id.co.tigabersama.pochuaweistream.ui.components.dangerColor
+import id.co.tigabersama.pochuaweistream.ui.components.successColor
 import id.co.tigabersama.pochuaweistream.ui.theme.POCHuaweiStreamTheme
+import id.co.tigabersama.pochuaweistream.ui.viewmodel.LivekitViewModel
+import id.co.tigabersama.pochuaweistream.ui.viewmodel.LivekitViewModelFactory
 import id.co.tigabersama.pochuaweistream.ui.viewmodel.UserViewModel
 import id.co.tigabersama.pochuaweistream.ui.viewmodel.UserViewModelFactory
 import id.co.tigabersama.pochuaweistream.utils.HuaweiLocationHelper
 import id.co.tigabersama.pochuaweistream.utils.ILocationHelper
 import id.co.tigabersama.pochuaweistream.utils.NativeLocationHelper
-import id.co.tigabersama.pochuaweistream.domain.model.BatteryData
-import id.co.tigabersama.pochuaweistream.realtime.CentrifugoClientManager
-import id.co.tigabersama.pochuaweistream.realtime.CentrifugoConnectionState
-import id.co.tigabersama.pochuaweistream.domain.model.PocData
-import id.co.tigabersama.pochuaweistream.domain.model.getBatteryStatus
 import io.livekit.android.compose.local.RoomScope
 import io.livekit.android.compose.state.rememberTracks
 import io.livekit.android.room.participant.RemoteParticipant
 import io.livekit.android.room.track.RemoteAudioTrack
 import io.livekit.android.room.track.Track
-import io.livekit.android.util.flow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -572,11 +575,12 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
         val hazeState = remember { HazeState() }
         var showStopStreamDialog by remember { mutableStateOf(false) }
         var showResolutionDialog by remember { mutableStateOf(false) }
+        var showStopConfirmDialog by remember { mutableStateOf(false) }
 
-        // Saat tombol stream ditekan: kalau sedang stream -> stop,
-        // kalau belum -> munculkan dialog pilih resolusi dulu.
+        // Saat sedang stream: tombol diganti "geser untuk akhiri" + dialog konfirmasi.
+        // Saat belum stream: klik -> munculkan dialog pilih resolusi dulu.
         val onStreamClick = {
-            if (isStreaming) onStopStream() else showResolutionDialog = true
+            if (!isStreaming) showResolutionDialog = true
         }
 
         var showDialogMap by remember { mutableStateOf(false) }
@@ -693,7 +697,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                             .width(100.dp)
                             .height(100.dp),
                     ) {
-                        if (!showDialogMap){
+                        if (!showDialogMap) {
                             OsmdroidMapView(
                                 modifier = Modifier
                                     .fillMaxHeight()
@@ -737,31 +741,39 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                     // Tombol Stream
 
                     if (livekitShouldConnect && !token.isNullOrEmpty()) {
-                        Button(
-                            onClick = onStreamClick,
-                            enabled = hasPermissions,
-                            modifier = Modifier
-                                .width(44.dp)
-                                .height(40.dp),
-                            shape = RoundedCornerShape(2.dp),
-                            contentPadding = PaddingValues(0.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isStreaming) dangerColor else colorPrimary,
-                                disabledContainerColor = Color.Gray
+                        if (isStreaming) {
+                            SwipeToStopButton(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(40.dp),
+                                onConfirmed = { showStopConfirmDialog = true }
                             )
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Image(
-                                    painter = painterResource(id = if (isStreaming) R.drawable.outline_stop_circle_24 else R.drawable.outline_smart_display_24),
-                                    contentDescription = null,
-                                    colorFilter = ColorFilter.tint(if (isStreaming) Color.White else backgroundColor)
+                        } else {
+                            Button(
+                                onClick = onStreamClick,
+                                enabled = hasPermissions,
+                                modifier = Modifier
+                                    .width(44.dp)
+                                    .height(40.dp),
+                                shape = RoundedCornerShape(2.dp),
+                                contentPadding = PaddingValues(0.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = colorPrimary,
+                                    disabledContainerColor = Color.Gray
                                 )
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.outline_smart_display_24),
+                                        contentDescription = null,
+                                        colorFilter = ColorFilter.tint(backgroundColor)
+                                    )
+                                }
                             }
-
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Box(
@@ -811,35 +823,44 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                             }
                         }
                     } else {
-                        Button(
-                            onClick = onStreamClick,
-                            enabled = hasPermissions,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(40.dp),
-                            shape = RoundedCornerShape(2.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isStreaming) dangerColor else colorPrimary,
-                                disabledContainerColor = Color.Gray
+                        if (isStreaming) {
+                            SwipeToStopButton(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(40.dp),
+                                text = "Geser untuk akhiri stream",
+                                onConfirmed = { showStopConfirmDialog = true }
                             )
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        } else {
+                            Button(
+                                onClick = onStreamClick,
+                                enabled = hasPermissions,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(40.dp),
+                                shape = RoundedCornerShape(2.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = colorPrimary,
+                                    disabledContainerColor = Color.Gray
+                                )
                             ) {
-                                Image(
-                                    painter = painterResource(id = if (isStreaming) R.drawable.outline_stop_circle_24 else R.drawable.outline_smart_display_24),
-                                    contentDescription = null,
-                                    colorFilter = ColorFilter.tint(if (isStreaming) Color.White else backgroundColor)
-                                )
-                                Text(
-                                    text = if (isStreaming) "Stop Stream" else "Start Stream",
-                                    color = if (isStreaming) Color.White else backgroundColor,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.outline_smart_display_24),
+                                        contentDescription = null,
+                                        colorFilter = ColorFilter.tint(backgroundColor)
+                                    )
+                                    Text(
+                                        text = "Start Stream",
+                                        color = backgroundColor,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
-
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Box(
@@ -998,8 +1019,179 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                         location?.longitude ?: 110.4091
                     ),
                     deviceMarkerIcon = R.drawable.ic_map,
-                    pocYaw = yaw  
+                    pocYaw = yaw
                 )
+            }
+
+            // Dialog konfirmasi setelah geser tombol "akhiri stream"
+            if (showStopConfirmDialog) {
+                Dialog(
+                    onDismissRequest = { showStopConfirmDialog = false },
+                    properties = DialogProperties(
+                        dismissOnBackPress = true,
+                        dismissOnClickOutside = true,
+                        usePlatformDefaultWidth = false
+                    )
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth(0.7f)
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .border(
+                                        width = 0.5.dp,
+                                        color = colorPrimary,
+                                        shape = RoundedCornerShape(
+                                            topStart = 2.dp,
+                                            topEnd = 2.dp,
+                                            bottomStart = 10.dp,
+                                            bottomEnd = 10.dp
+                                        )
+                                    )
+                                    .fillMaxWidth()
+                                    .matchParentSize()
+                                    .background(
+                                        color = Color(0x1A02D8FA),
+                                        shape = RoundedCornerShape(
+                                            topStart = 2.dp,
+                                            topEnd = 2.dp,
+                                            bottomStart = 10.dp,
+                                            bottomEnd = 10.dp
+                                        )
+                                    )
+                                    .padding(20.dp)
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .background(
+                                    color = colorPrimary,
+                                    shape = RoundedCornerShape(
+                                        topStart = 2.dp,
+                                        topEnd = 2.dp
+                                    )
+                                )
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp, vertical = 18.dp)
+                                .align(Alignment.TopCenter)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Stop Stream",
+                                    fontSize = 12.sp,
+                                    color = Color.White
+                                )
+                                Image(
+                                    modifier = Modifier
+                                        .clickable {
+                                            showStopConfirmDialog = false
+                                        }
+                                        .size(24.dp),
+                                    painter = painterResource(id = R.drawable.outline_close_24),
+                                    contentDescription = null,
+                                    colorFilter = ColorFilter.tint(Color.White)
+                                )
+                            }
+                        }
+
+                        Image(
+                            painter = painterResource(id = R.drawable.border_left),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .size(28.dp)
+                        )
+
+                        Image(
+                            painter = painterResource(id = R.drawable.border_right),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(28.dp)
+                        )
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                                .padding(top = 42.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+
+                            Text(
+                                text = "Apakah Anda yakin ingin mengakhiri siaran (stream) ini?",
+                                color = Color.White,
+                                fontSize = 12.sp
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+
+                                Button(
+                                    onClick = {
+                                        showStopConfirmDialog = false
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(40.dp),
+                                    shape = RoundedCornerShape(2.dp),
+                                    contentPadding = PaddingValues(0.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = dangerColor,
+                                        disabledContainerColor = Color.Gray
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(text = "Batal", color = Color.White)
+                                    }
+                                }
+                                Spacer(Modifier.width(12.dp))
+
+                                Button(
+                                    onClick = {
+                                        showStopConfirmDialog = false
+                                        onStopStream()
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(40.dp),
+                                    shape = RoundedCornerShape(2.dp),
+                                    contentPadding = PaddingValues(0.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = colorPrimary,
+                                        disabledContainerColor = Color.Gray
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(text = "Stop Stream", color = backgroundColor)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             // Dialog pilih resolusi sebelum mulai stream
