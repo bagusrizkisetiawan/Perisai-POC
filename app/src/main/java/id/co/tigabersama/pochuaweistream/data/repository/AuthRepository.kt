@@ -16,7 +16,7 @@ import java.io.IOException
 class AuthRepository(
     private val apiService: ApiService,
     private val secureStorage: SecureTokenStorage,
-    private val context: Context
+    private val context: Context,
 ) {
 
     companion object {

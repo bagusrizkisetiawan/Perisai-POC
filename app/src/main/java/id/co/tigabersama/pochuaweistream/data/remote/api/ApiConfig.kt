@@ -3,9 +3,9 @@ package id.co.tigabersama.pochuaweistream.data.remote.api
 import android.content.Context
 import android.util.Log
 import id.co.tigabersama.pochuaweistream.BuildConfig
+import id.co.tigabersama.pochuaweistream.data.local.AppSettingsManager
 import id.co.tigabersama.pochuaweistream.data.local.SecureTokenStorage
 import id.co.tigabersama.pochuaweistream.data.remote.interceptor.AuthInterceptor
-import id.co.tigabersama.pochuaweistream.data.local.AppSettingsManager
 import id.co.tigabersama.pochuaweistream.data.repository.AuthRepository
 import kotlinx.coroutines.runBlocking
 import okhttp3.Authenticator

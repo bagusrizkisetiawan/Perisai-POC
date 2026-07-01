@@ -42,7 +42,7 @@ class UserViewModel(private val apiService: ApiService) : ViewModel() {
 }
 
 class UserViewModelFactory(
-    private val apiService: ApiService
+    private val apiService: ApiService,
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(UserViewModel::class.java)) {

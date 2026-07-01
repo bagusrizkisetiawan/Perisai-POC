@@ -60,7 +60,7 @@ class LivekitViewModel(private val apiService: ApiService) : ViewModel() {
 
 // Factory diperlukan karena ViewModel kita membutuhkan parameter (apiService)
 class LivekitViewModelFactory(
-    private val apiService: ApiService
+    private val apiService: ApiService,
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(LivekitViewModel::class.java)) {

@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.DashPathEffect
+import android.graphics.Paint
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.layout.*
@@ -15,12 +17,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import id.co.tigabersama.pochuaweistream.R
 import id.co.tigabersama.pochuaweistream.data.local.AppSettingsManager
 import id.co.tigabersama.pochuaweistream.data.remote.api.ApiConfig
 import id.co.tigabersama.pochuaweistream.data.remote.response.DrawMapItem
 import id.co.tigabersama.pochuaweistream.ui.viewmodel.DrawViewModel
 import id.co.tigabersama.pochuaweistream.ui.viewmodel.DrawViewModelFactory
+import id.co.tigabersama.pochuaweistream.utils.GoogleSatelliteTile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -29,19 +34,13 @@ import org.osmdroid.events.DelayedMapListener
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.Overlay
 import org.osmdroid.views.overlay.Polygon
 import org.osmdroid.views.overlay.Polyline
-import android.graphics.DashPathEffect
-import androidx.core.graphics.drawable.DrawableCompat
-import id.co.tigabersama.pochuaweistream.R
-import org.osmdroid.views.overlay.Overlay
-import android.graphics.Paint
-import id.co.tigabersama.pochuaweistream.utils.GoogleSatelliteTile
 
 @Composable
 fun OsmdroidMapView(
@@ -51,7 +50,7 @@ fun OsmdroidMapView(
     deviceMarkerIcon: Int? = null,
     initialZoom: Double = 19.0,
     pocYaw: Float? = null,
-    followDevice: Boolean = true
+    followDevice: Boolean = true,
 ) {
     val context = LocalContext.current
 
@@ -98,9 +97,9 @@ fun OsmdroidMapView(
         bounds?.let { b ->
             drawVm.fetchDraw(
                 long1 = b.lonWest,
-                lat1  = b.latNorth,
+                lat1 = b.latNorth,
                 long2 = b.lonEast,
-                lat2  = b.latSouth
+                lat2 = b.latSouth,
             )
         }
     }
@@ -121,7 +120,6 @@ fun OsmdroidMapView(
         // update bounds setelah animasi supaya data ke-fetch untuk area baru
         mv.postDelayed({ bounds = mv.boundingBox }, 600)
     }
-
 
     Card(modifier = modifier, shape = RoundedCornerShape(4.dp)) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -147,8 +145,8 @@ fun OsmdroidMapView(
                                         return false
                                     }
                                 },
-                                500
-                            )
+                                500,
+                            ),
                         )
                         post { bounds = boundingBox }
                     }
@@ -158,11 +156,11 @@ fun OsmdroidMapView(
 
                     drawItems.forEach { item ->
                         when (item.type.lowercase()) {
-                            "pin"    -> item.toMarker(mapView, iconCache)?.let(mapView.overlays::add)
-                            "line"   -> item.toPolyline(mapView, arrowDrawable)?.let {
-                                mapView.overlays.addAll(it)            // ← addAll, bukan add
+                            "pin" -> item.toMarker(mapView, iconCache)?.let(mapView.overlays::add)
+                            "line" -> item.toPolyline(mapView, arrowDrawable)?.let {
+                                mapView.overlays.addAll(it) // ← addAll, bukan add
                             }
-                            "area"   -> item.toPolygon()?.let(mapView.overlays::add)
+                            "area" -> item.toPolygon()?.let(mapView.overlays::add)
                             "circle" -> item.toCircle()?.let(mapView.overlays::add)
                         }
                     }
@@ -184,7 +182,7 @@ fun OsmdroidMapView(
                     mapView.overlays.add(deviceMarker)
 
                     mapView.invalidate()
-                }
+                },
             )
         }
     }
@@ -201,7 +199,7 @@ private fun DrawMapItem.parseColor(default: Int = android.graphics.Color.BLUE): 
  */
 private fun DrawMapItem.toMarker(
     mapView: MapView,
-    iconCache: Map<String, Drawable>
+    iconCache: Map<String, Drawable>,
 ): Marker? {
     val p = point ?: return null
     val iconId = this.icon?.takeIf { it.isNotBlank() } ?: return null
@@ -222,7 +220,7 @@ private fun DrawMapItem.toMarker(
 
 private fun DrawMapItem.toPolyline(
     mapView: MapView,
-    arrowDrawable: Drawable?
+    arrowDrawable: Drawable?,
 ): List<Overlay>? {
     val pts = points?.takeIf { it.size >= 2 } ?: return null
     val geo = pts.map { GeoPoint(it.lat, it.long) }
@@ -264,7 +262,7 @@ private fun makeDotMarker(
     mapView: MapView,
     position: GeoPoint,
     color: Int,
-    sizePx: Int
+    sizePx: Int,
 ): Marker = Marker(mapView).apply {
     this.position = position
     icon = createDotDrawable(mapView.context, color, sizePx)
@@ -277,7 +275,7 @@ private fun createDotDrawable(
     context: Context,
     color: Int,
     sizePx: Int,
-    withWhiteBorder: Boolean = true
+    withWhiteBorder: Boolean = true,
 ): BitmapDrawable {
     val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
@@ -311,14 +309,14 @@ private fun makeArrowMarker(
     position: GeoPoint,
     drawable: Drawable,
     bearing: Float,
-    size: Int
+    size: Int,
 ): Marker = Marker(mapView).apply {
     this.position = position
     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
     icon = resizeDrawableByWidth(mapView.context, drawable, size)
-    rotation = -bearing       // osmdroid rotation: counter-clockwise; bearing: clockwise from north
-    isFlat = true             // ikut rotasi peta
-    setInfoWindow(null)       // disable popup saat di-tap
+    rotation = -bearing // osmdroid rotation: counter-clockwise; bearing: clockwise from north
+    isFlat = true // ikut rotasi peta
+    setInfoWindow(null) // disable popup saat di-tap
 }
 
 private fun DrawMapItem.toPolygon(): Polygon? {
@@ -349,7 +347,7 @@ private fun DrawMapItem.toCircle(): Polygon? {
 suspend fun loadDrawableWithAuth(
     context: Context,
     url: String,
-    client: OkHttpClient
+    client: OkHttpClient,
 ): Drawable? = withContext(Dispatchers.IO) {
     runCatching {
         val request = Request.Builder().url(url).get().build()
@@ -369,14 +367,17 @@ suspend fun loadDrawableWithAuth(
 
 // ── Helper resize (tetap) ──────────────────────────────────────────────────
 fun resizeDrawableByWidth(context: Context, drawable: Drawable, targetWidth: Int): BitmapDrawable {
-    val bitmap = if (drawable is BitmapDrawable) drawable.bitmap else {
+    val bitmap = if (drawable is BitmapDrawable) {
+        drawable.bitmap
+    } else {
         val bmp = Bitmap.createBitmap(
             drawable.intrinsicWidth.takeIf { it > 0 } ?: 1,
             drawable.intrinsicHeight.takeIf { it > 0 } ?: 1,
-            Bitmap.Config.ARGB_8888
+            Bitmap.Config.ARGB_8888,
         )
         Canvas(bmp).also {
-            drawable.setBounds(0, 0, it.width, it.height); drawable.draw(it)
+            drawable.setBounds(0, 0, it.width, it.height)
+            drawable.draw(it)
         }
         bmp
     }

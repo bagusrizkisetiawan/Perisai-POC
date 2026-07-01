@@ -5,5 +5,5 @@ import com.google.gson.annotations.SerializedName
 // Refresh Token Request
 data class RefreshTokenRequest(
     @SerializedName("RefreshToken")
-    val refreshToken: String
+    val refreshToken: String,
 )

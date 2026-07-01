@@ -161,7 +161,7 @@ class CentrifugoClientManager private constructor(context: Context) {
             val eventListener = object : EventListener() {
                 override fun onConnected(
                     client: Client?,
-                    event: ConnectedEvent?
+                    event: ConnectedEvent?,
                 ) {
                     Log.d(TAG, "CONNECTED KE CENTRIFUGO 🔥")
                     _connectionState.value = CentrifugoConnectionState.CONNECTED
@@ -172,7 +172,9 @@ class CentrifugoClientManager private constructor(context: Context) {
                             val payload = android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP)
                             val payloadJson = String(payload, Charsets.UTF_8)
                             gson.fromJson(payloadJson, Map::class.java)["sub"] as? String
-                        } else null
+                        } else {
+                            null
+                        }
                     }
 
                     if (pocId == null) {
@@ -189,7 +191,7 @@ class CentrifugoClientManager private constructor(context: Context) {
 
                 override fun onDisconnected(
                     client: Client?,
-                    event: DisconnectedEvent?
+                    event: DisconnectedEvent?,
                 ) {
                     Log.d(TAG, "disconnect KE CENTRIFUGO 🔥")
 
@@ -199,7 +201,7 @@ class CentrifugoClientManager private constructor(context: Context) {
 
                 override fun onError(
                     client: Client?,
-                    event: ErrorEvent?
+                    event: ErrorEvent?,
                 ) {
                     Log.e(TAG, "Centrifugo error: ${event?.error?.message ?: "Unknown error"}")
                     _connectionState.value = CentrifugoConnectionState.ERROR
@@ -207,22 +209,25 @@ class CentrifugoClientManager private constructor(context: Context) {
 
                 override fun onConnecting(
                     client: Client?,
-                    event: ConnectingEvent?
+                    event: ConnectingEvent?,
                 ) {
                     _connectionState.value = CentrifugoConnectionState.CONNECTING
                 }
             }
 
             // Create client with required listener parameter
-            client = Client(websocketUrl, Options().apply {
-                this.token = token
-            }, eventListener)
+            client = Client(
+                websocketUrl,
+                Options().apply {
+                    this.token = token
+                },
+                eventListener,
+            )
 
             // Connect to server
             client?.connect()
 
             // Set connection state manually
-
         } catch (e: Exception) {
             Log.e(TAG, "Error connecting to Centrifugo", e)
             _connectionState.value = CentrifugoConnectionState.ERROR
@@ -239,7 +244,6 @@ class CentrifugoClientManager private constructor(context: Context) {
                 subscription = client.newSubscription(channel, subscriptionListener)
                 subscription?.subscribe()
                 Log.d(TAG, "Subscribed to $channel")
-
             } catch (e: Exception) {
                 Log.e(TAG, "Error subscribing to channels", e)
             }
@@ -255,33 +259,12 @@ class CentrifugoClientManager private constructor(context: Context) {
                         publishToChannel(channel, data)
                         _lastDataSent.value = data
 //                        Log.d("woilah kirim", "${data}")
-
                     }
                     delay(DATA_TRANSMISSION_INTERVAL_MS)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error in data transmission", e)
             }
-        }
-    }
-
-    private fun handleServerMessage(message: String) {
-        val currentMessages = _receivedMessages.value.toMutableList()
-        currentMessages.add("Server: $message")
-        if (currentMessages.size > 50) {
-            currentMessages.removeAt(0)
-        }
-        _receivedMessages.value = currentMessages
-    }
-
-    private fun handleChannelMessage(channel: String, message: String) {
-        scope.launch(Dispatchers.Main) {
-            val currentMessages = _receivedMessages.value.toMutableList()
-            currentMessages.add("$channel: $message")
-            if (currentMessages.size > 50) {
-                currentMessages.removeAt(0)
-            }
-            _receivedMessages.value = currentMessages
         }
     }
 
@@ -298,5 +281,5 @@ enum class CentrifugoConnectionState {
     DISCONNECTED,
     CONNECTING,
     CONNECTED,
-    ERROR
+    ERROR,
 }

@@ -34,7 +34,6 @@ class AppSettingsManager private constructor(context: Context) {
      */
     fun getBaseUrl(): String {
         return prefs.getString(KEY_BASE_URL, BuildConfig.BASE_URL) ?: BuildConfig.BASE_URL
-
     }
 
     /**
@@ -66,7 +65,6 @@ class AppSettingsManager private constructor(context: Context) {
      */
     fun getRtmpUrl(): String {
         return prefs.getString(KEY_RTMP_URL, BuildConfig.RTMP_URL) ?: BuildConfig.RTMP_URL
-
     }
 
     /**
@@ -76,14 +74,12 @@ class AppSettingsManager private constructor(context: Context) {
         prefs.edit().putString(KEY_RTMP_URL, url).apply()
     }
 
-
     /**
      * Get the LIVEKIT streaming URL
      * Returns saved value or default from BuildConfig
      */
     fun getLivekitUrl(): String {
         return prefs.getString(KEY_LIVEKIT_URL, BuildConfig.LIVEKIT_URL) ?: BuildConfig.LIVEKIT_URL
-
     }
 
     /**

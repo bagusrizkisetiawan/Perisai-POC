@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,27 +33,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import id.co.tigabersama.pochuaweistream.ui.components.backgroudOverlay
-import id.co.tigabersama.pochuaweistream.ui.components.bgDangerColor
-import id.co.tigabersama.pochuaweistream.ui.components.bgSuccessColor
-import id.co.tigabersama.pochuaweistream.ui.components.bgWarningColor
-import id.co.tigabersama.pochuaweistream.ui.components.dangerColor
-import id.co.tigabersama.pochuaweistream.ui.components.successColor
-import id.co.tigabersama.pochuaweistream.ui.components.warningColor
-import id.co.tigabersama.pochuaweistream.ui.viewmodel.AuthViewModel
 import id.co.tigabersama.pochuaweistream.realtime.CentrifugoConnectionState
+import id.co.tigabersama.pochuaweistream.ui.viewmodel.AuthViewModel
 
 @Composable
 fun ConnectionStatusBar(
     username: String? = null,
     connectionState: CentrifugoConnectionState,
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
 ) {
     val authViewModel: AuthViewModel = viewModel()
 
     val isConnected = connectionState == CentrifugoConnectionState.CONNECTED
     val isConnecting = connectionState == CentrifugoConnectionState.CONNECTING
-
 
     Row(
         modifier = Modifier
@@ -64,12 +55,12 @@ fun ConnectionStatusBar(
             .padding(top = 16.dp, bottom = 8.dp)
             .statusBarsPadding(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(
             modifier = Modifier
                 .weight(1f),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             username?.let {
                 Text(
@@ -80,7 +71,7 @@ fun ConnectionStatusBar(
                     fontSize = 12.sp,
                     color = Color.White,
                     textAlign = TextAlign.Start,
-                    maxLines = 1
+                    maxLines = 1,
                 )
             }
             // Status Pill
@@ -92,11 +83,11 @@ fun ConnectionStatusBar(
                             isConnected -> bgSuccessColor
                             isConnecting -> bgWarningColor
                             else -> bgDangerColor
-                        }
+                        },
                     )
                     .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Box(
                     modifier = Modifier
@@ -107,8 +98,8 @@ fun ConnectionStatusBar(
                                 isConnected -> successColor
                                 isConnecting -> warningColor
                                 else -> dangerColor
-                            }
-                        )
+                            },
+                        ),
                 )
                 Text(
                     text = when {
@@ -122,7 +113,7 @@ fun ConnectionStatusBar(
                         else -> dangerColor
                     },
                     fontSize = 8.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
                 )
             }
         }
@@ -131,15 +122,14 @@ fun ConnectionStatusBar(
             onLogoutClick = {
                 authViewModel.logout()
                 onLogoutClick()
-            }
+            },
         )
     }
 }
 
-
 @Composable
 fun MenuWithLogout(
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -148,20 +138,20 @@ fun MenuWithLogout(
             Icon(
                 imageVector = Icons.Default.MoreVert,
                 contentDescription = "Menu",
-                tint = Color.White
+                tint = Color.White,
             )
         }
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
         ) {
             DropdownMenuItem(
                 text = { Text("Logout") },
                 onClick = {
                     expanded = false
                     onLogoutClick()
-                }
+                },
             )
         }
     }

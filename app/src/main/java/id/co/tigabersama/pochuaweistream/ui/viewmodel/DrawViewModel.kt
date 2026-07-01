@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.google.gson.GsonBuilder
 import id.co.tigabersama.pochuaweistream.data.remote.api.ApiService
 import id.co.tigabersama.pochuaweistream.data.remote.response.DrawMapItem
 import kotlinx.coroutines.Job
@@ -15,12 +14,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class DrawViewModel(
-    private val api: ApiService
+    private val api: ApiService,
 ) : ViewModel() {
 
     companion object {
         private const val TAG = "DrawViewModel"
-        private val prettyGson = GsonBuilder().setPrettyPrinting().create()
     }
 
     private val _drawItems = MutableStateFlow<List<DrawMapItem>>(emptyList())
@@ -59,8 +57,8 @@ class DrawViewModel(
                         Log.d(
                             TAG,
                             "[$i] type=${item.type}, color=${item.color}, " +
-                                    "point=${pt?.let { "(${it.lat},${it.long})" } ?: "null"}, " +
-                                    "points=${pts?.size ?: 0}, radius=${item.radius}"
+                                "point=${pt?.let { "(${it.lat},${it.long})" } ?: "null"}, " +
+                                "points=${pts?.size ?: 0}, radius=${item.radius}",
                         )
                     }
                 } catch (e: Exception) {
@@ -74,24 +72,10 @@ class DrawViewModel(
             }
         }
     }
-
-    /**
-     * Logcat memotong line yang panjangnya > ~4000 char.
-     * Helper ini memecah string panjang menjadi beberapa baris.
-     */
-    private fun logLong(text: String, tag: String = TAG) {
-        val chunkSize = 3500
-        var i = 0
-        while (i < text.length) {
-            val end = minOf(i + chunkSize, text.length)
-            Log.d(tag, text.substring(i, end))
-            i = end
-        }
-    }
 }
 
 class DrawViewModelFactory(
-    private val api: ApiService
+    private val api: ApiService,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T = DrawViewModel(api) as T

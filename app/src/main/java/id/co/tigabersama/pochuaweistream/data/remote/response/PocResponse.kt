@@ -8,10 +8,10 @@ data class PocInfoData(
     val agencyId: String,
     val locationName: String,
     val latitude: Double,
-    val longitude: Double
+    val longitude: Double,
 )
 
 data class PocResponse(
     val message: String,
-    val data: PocInfoData
+    val data: PocInfoData,
 )

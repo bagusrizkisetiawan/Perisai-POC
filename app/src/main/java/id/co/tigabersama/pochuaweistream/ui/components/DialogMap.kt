@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import id.co.tigabersama.pochuaweistream.R
-import id.co.tigabersama.pochuaweistream.ui.components.colorPrimary
 import org.osmdroid.util.GeoPoint
 
 @Composable
@@ -34,46 +33,46 @@ fun DialogMap(
     onDismiss: () -> Unit,
     deviceLocation: GeoPoint = GeoPoint(-6.9828, 110.4091),
     deviceMarkerIcon: Int? = null,
-    pocYaw: Float? = null
+    pocYaw: Float? = null,
 ) {
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
             dismissOnBackPress = true,
             dismissOnClickOutside = true,
-            usePlatformDefaultWidth = false
-        )
+            usePlatformDefaultWidth = false,
+        ),
     ) {
         Box(
             Modifier
                 .fillMaxWidth(0.9f)
-                .fillMaxHeight(0.85f)
+                .fillMaxHeight(0.85f),
         ) {
             Box(
                 modifier =
-                    Modifier
-                        .border(
-                            width = 0.5.dp,
-                            color = colorPrimary,
-                            shape = RoundedCornerShape(
-                                topStart = 2.dp,
-                                topEnd = 2.dp,
-                                bottomStart = 10.dp,
-                                bottomEnd = 10.dp
-                            )
-                        )
-                        .fillMaxWidth()
-                        .matchParentSize()
-                        .background(
-                            color = Color(0x1A02D8FA),
-                            shape = RoundedCornerShape(
-                                topStart = 2.dp,
-                                topEnd = 2.dp,
-                                bottomStart = 10.dp,
-                                bottomEnd = 10.dp
-                            )
-                        )
-                        .padding(20.dp)
+                Modifier
+                    .border(
+                        width = 0.5.dp,
+                        color = colorPrimary,
+                        shape = RoundedCornerShape(
+                            topStart = 2.dp,
+                            topEnd = 2.dp,
+                            bottomStart = 10.dp,
+                            bottomEnd = 10.dp,
+                        ),
+                    )
+                    .fillMaxWidth()
+                    .matchParentSize()
+                    .background(
+                        color = Color(0x1A02D8FA),
+                        shape = RoundedCornerShape(
+                            topStart = 2.dp,
+                            topEnd = 2.dp,
+                            bottomStart = 10.dp,
+                            bottomEnd = 10.dp,
+                        ),
+                    )
+                    .padding(20.dp),
             )
 
             Box(
@@ -84,26 +83,26 @@ fun DialogMap(
                         color = colorPrimary,
                         shape = RoundedCornerShape(
                             topStart = 2.dp,
-                            topEnd = 2.dp
-                        )
-                    )
+                            topEnd = 2.dp,
+                        ),
+                    ),
             )
 
             Box(
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 18.dp)
-                    .align(Alignment.TopCenter)
+                    .align(Alignment.TopCenter),
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
                         text = "Tactical Map",
                         fontSize = 12.sp,
-                        color = Color.White
+                        color = Color.White,
                     )
                     Image(
                         modifier = Modifier
@@ -113,7 +112,7 @@ fun DialogMap(
                             .size(24.dp),
                         painter = painterResource(id = R.drawable.outline_close_24),
                         contentDescription = null,
-                        colorFilter = ColorFilter.tint(Color.White)
+                        colorFilter = ColorFilter.tint(Color.White),
                     )
                 }
             }
@@ -123,7 +122,7 @@ fun DialogMap(
                 contentDescription = null,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .size(28.dp)
+                    .size(28.dp),
             )
 
             Image(
@@ -131,23 +130,22 @@ fun DialogMap(
                 contentDescription = null,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .size(28.dp)
+                    .size(28.dp),
             )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp).padding(top = 42.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-
                 OsmdroidMapView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight(),
                     deviceLocation = deviceLocation,
                     deviceMarkerIcon = deviceMarkerIcon,
-                    pocYaw = pocYaw
+                    pocYaw = pocYaw,
                 )
             }
         }

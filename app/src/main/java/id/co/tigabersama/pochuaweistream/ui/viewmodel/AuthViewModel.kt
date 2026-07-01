@@ -53,7 +53,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                                 isLoggedIn = true,
                                 accessToken = loginData.accessToken,
                                 isLoading = false,
-                                error = null
+                                error = null,
                             )
                             Log.d(TAG, "Login successful")
                         },
@@ -62,10 +62,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                                 isLoggedIn = false,
                                 accessToken = null,
                                 isLoading = false,
-                                error = exception.message
+                                error = exception.message,
                             )
                             Log.e(TAG, "Login failed: ${exception.message}")
-                        }
+                        },
                     )
                 }
             } catch (e: TimeoutCancellationException) {
@@ -75,7 +75,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     isLoggedIn = false,
                     accessToken = null,
                     isLoading = false,
-                    error = "Waktu login habis (Timeout). Periksa koneksi server/internet."
+                    error = "Waktu login habis (Timeout). Periksa koneksi server/internet.",
                 )
             } catch (e: Exception) {
                 // Menangkap error jaringan mendadak (seperti SocketTimeoutException) yang lolos dari .fold()
@@ -84,7 +84,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     isLoggedIn = false,
                     accessToken = null,
                     isLoading = false,
-                    error = e.message ?: "Terjadi kesalahan sistem/jaringan."
+                    error = e.message ?: "Terjadi kesalahan sistem/jaringan.",
                 )
             }
         }
@@ -101,7 +101,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                             _authState.value = AuthState(
                                 isLoggedIn = true,
                                 accessToken = newAccessToken,
-                                isLoading = false
+                                isLoading = false,
                             )
                             apiConfig.setCurrentAccessToken(newAccessToken)
                         },
@@ -110,7 +110,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                             authRepository.logout()
                             apiConfig.setCurrentAccessToken(null)
                             _authState.value = AuthState(isLoading = false)
-                        }
+                        },
                     )
                 }
             } catch (e: TimeoutCancellationException) {
@@ -151,6 +151,4 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     fun isLoggedIn(): Boolean {
         return _authState.value.isLoggedIn && _authState.value.accessToken != null
     }
-
-
 }

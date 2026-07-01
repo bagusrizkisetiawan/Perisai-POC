@@ -149,7 +149,6 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
     private var batteryLevel by mutableIntStateOf(0)
 
     // LiveKit
-    private val wsURL = "wss://livekit.digicx.id"
     private var livekitShouldConnect by mutableStateOf(false)
     private var livekitIsMuted by mutableStateOf(true)
     private var livekitIsSpeakerMuted by mutableStateOf(false)
@@ -162,7 +161,6 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
         super.onCreate(savedInstanceState)
 
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
 
         // Verifikasi izin di awal
         hasPermissions = checkRequiredPermissions()
@@ -208,7 +206,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
 
         Configuration.getInstance().load(
             applicationContext,
-            PreferenceManager.getDefaultSharedPreferences(applicationContext)
+            PreferenceManager.getDefaultSharedPreferences(applicationContext),
         )
         Configuration.getInstance().userAgentValue = packageName
 
@@ -254,7 +252,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                 sensorManager.registerListener(
                     listener,
                     rotationSensor,
-                    SensorManager.SENSOR_DELAY_UI
+                    SensorManager.SENSOR_DELAY_UI,
                 )
 
                 onDispose {
@@ -262,11 +260,11 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                 }
             }
 
-
             LaunchedEffect(connectionState) {
                 when (connectionState) {
                     CentrifugoConnectionState.ERROR,
-                    CentrifugoConnectionState.DISCONNECTED -> {
+                    CentrifugoConnectionState.DISCONNECTED,
+                    -> {
                         centrifugoManager.startConnection()
                     }
 
@@ -312,11 +310,11 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                         am.setStreamVolume(
                             AudioManager.STREAM_MUSIC,
                             maxMusic / 2,
-                            0
+                            0,
                         ) // restore ke 50%
                     },
                     onLivekitMuteToggle = { livekitIsMuted = !livekitIsMuted },
-                    onLivekitSpeakerToggle = { livekitIsSpeakerMuted = !livekitIsSpeakerMuted }
+                    onLivekitSpeakerToggle = { livekitIsSpeakerMuted = !livekitIsSpeakerMuted },
                 )
             }
         }
@@ -325,7 +323,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
     fun ComponentActivity.requireNeededPermissions(onPermissionsGranted: (() -> Unit)? = null) {
         val requestPermissionLauncher =
             registerForActivityResult(
-                ActivityResultContracts.RequestMultiplePermissions()
+                ActivityResultContracts.RequestMultiplePermissions(),
             ) { grants ->
                 // Check if any permissions weren't granted.
                 for (grant in grants.entries) {
@@ -333,7 +331,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                         Toast.makeText(
                             this,
                             "Missing permission: ${grant.key}",
-                            Toast.LENGTH_SHORT
+                            Toast.LENGTH_SHORT,
                         )
                             .show()
                     }
@@ -349,7 +347,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
             .filter {
                 ContextCompat.checkSelfPermission(
                     this,
-                    it
+                    it,
                 ) == PackageManager.PERMISSION_DENIED
             }
             .toTypedArray()
@@ -370,7 +368,6 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
         locationHelper.stopLocationUpdates()
     }
 
-
     // =========================================================================
     // 3. CORE LOGIC (Network, Streaming, Centrifugo)
     // =========================================================================
@@ -387,7 +384,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                     if (pocId != null) {
                         withContext(Dispatchers.Main) {
                             rtmpUrl =
-                                "${baseRtmpUrl}/$pocId?user=drone&pass=$accessToken"
+                                "$baseRtmpUrl/$pocId?user=drone&pass=$accessToken"
                             Log.d("RTMP_URL", "Berhasil mengambil URL: $rtmpUrl")
                         }
                     } else {
@@ -417,10 +414,10 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
         val prepared = rtmpCamera?.prepareVideo(
             width,
             height,
-            30,             // fps
+            30, // fps
             bitrate,
-            2,              // iFrameInterval (detik)
-            rotation
+            2, // iFrameInterval (detik)
+            rotation,
         ) == true
 
         if (prepared) {
@@ -455,13 +452,12 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                 battery = BatteryData.SingleBatteryState(
                     percentageRemaining = batteryLevel,
                     voltageLevel = 0f,
-                    batteryStatus = getBatteryStatus(batteryLevel)
-                )
+                    batteryStatus = getBatteryStatus(batteryLevel),
+                ),
             )
             centrifugoManager.updatePocData(pocData)
         }
     }
-
 
     // =========================================================================
     // 4. HARDWARE & PERMISSION HELPERS
@@ -470,15 +466,15 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
     private fun checkRequiredPermissions(): Boolean {
         val camera = ContextCompat.checkSelfPermission(
             this,
-            Manifest.permission.CAMERA
+            Manifest.permission.CAMERA,
         ) == PackageManager.PERMISSION_GRANTED
         val audio = ContextCompat.checkSelfPermission(
             this,
-            Manifest.permission.RECORD_AUDIO
+            Manifest.permission.RECORD_AUDIO,
         ) == PackageManager.PERMISSION_GRANTED
         val location = ContextCompat.checkSelfPermission(
             this,
-            Manifest.permission.ACCESS_FINE_LOCATION
+            Manifest.permission.ACCESS_FINE_LOCATION,
         ) == PackageManager.PERMISSION_GRANTED
         return camera && audio && location
     }
@@ -499,7 +495,6 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
         return manufacturer.contains("huawei") || brand.contains("huawei")
     }
 
-
     // =========================================================================
     // 5. UTILITY FUNCTIONS
     // =========================================================================
@@ -509,7 +504,6 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
             Toast.makeText(this@RCScreenActivity, message, Toast.LENGTH_SHORT).show()
         }
     }
-
 
     // =========================================================================
     // 6. CONNECT CHECKER INTERFACE IMPLEMENTATION
@@ -544,7 +538,6 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
         Toast.makeText(this, "Autentikasi RTMP Sukses", Toast.LENGTH_SHORT).show()
     }
 
-
     // =========================================================================
     // 7. COMPOSE UI COMPONENTS
     // =========================================================================
@@ -564,11 +557,11 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
         userApiService: ApiService,
         livekitShouldConnect: Boolean,
         livekitIsMuted: Boolean,
-        livekitIsSpeakerMuted: Boolean,         // ← fix nama konsisten
+        livekitIsSpeakerMuted: Boolean, // ← fix nama konsisten
         onLivekitConnect: () -> Unit,
         onLivekitDisconnect: () -> Unit,
         onLivekitMuteToggle: () -> Unit,
-        onLivekitSpeakerToggle: () -> Unit,     // ← fix nama konsisten
+        onLivekitSpeakerToggle: () -> Unit, // ← fix nama konsisten
     ) {
         val context = LocalContext.current
 
@@ -595,8 +588,6 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
 
         var listUserSpeaking by remember { mutableStateOf<List<String>>(emptyList()) }
 
-
-
         LaunchedEffect(token) {
             if (!token.isNullOrEmpty()) {
                 onLivekitConnect()
@@ -607,21 +598,21 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
             modifier = Modifier
                 .fillMaxSize()
                 .background(backgroundColor)
-                .navigationBarsPadding()
+                .navigationBarsPadding(),
         ) {
             // ── Camera Preview ──────────────────────────────────────────────
             if (hasPermissions) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .haze(state = hazeState)
+                        .haze(state = hazeState),
                 ) {
                     AndroidView(
                         factory = { context ->
                             OpenGlView(context).apply {
                                 layoutParams = ViewGroup.LayoutParams(
                                     ViewGroup.LayoutParams.MATCH_PARENT,
-                                    ViewGroup.LayoutParams.MATCH_PARENT
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
                                 )
                             }.also { glView ->
                                 rtmpCamera = RtmpCamera2(glView, this@RCScreenActivity)
@@ -638,7 +629,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                         holder: SurfaceHolder,
                                         format: Int,
                                         width: Int,
-                                        height: Int
+                                        height: Int,
                                     ) {
                                         if (rtmpCamera?.isOnPreview == false) {
                                             rtmpCamera?.startPreview()
@@ -659,7 +650,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                             }
                         },
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxSize(),
                     )
                 }
             } else {
@@ -673,7 +664,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                 verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .fillMaxWidth()
+                    .fillMaxWidth(),
             ) {
                 ConnectionStatusBar(
                     username = user?.Name?.trim(),
@@ -683,7 +674,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                         intent.flags =
                             Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         context.startActivity(intent)
-                    }
+                    },
                 )
 
                 Row(
@@ -704,16 +695,16 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                     .fillMaxWidth(),
                                 deviceLocation = GeoPoint(
                                     location?.latitude ?: -6.9828,
-                                    location?.longitude ?: 110.4091
+                                    location?.longitude ?: 110.4091,
                                 ),
                                 deviceMarkerIcon = R.drawable.ic_map,
-                                pocYaw = yaw
+                                pocYaw = yaw,
                             )
                         }
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .clickable { showDialogMap = true }
+                                .clickable { showDialogMap = true },
                         )
                     }
                     if (isStreaming) {
@@ -730,13 +721,12 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                     .hazeChild(state = hazeState, style = HazeMaterials.ultraThin())
                     .background(color = Color(0x80070C28))
                     .padding(horizontal = 16.dp, vertical = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     // Tombol Stream
 
@@ -746,7 +736,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(40.dp),
-                                onConfirmed = { showStopConfirmDialog = true }
+                                onConfirmed = { showStopConfirmDialog = true },
                             )
                         } else {
                             Button(
@@ -759,18 +749,18 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                 contentPadding = PaddingValues(0.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = colorPrimary,
-                                    disabledContainerColor = Color.Gray
-                                )
+                                    disabledContainerColor = Color.Gray,
+                                ),
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
+                                    horizontalArrangement = Arrangement.Center,
                                 ) {
                                     Image(
                                         painter = painterResource(id = R.drawable.outline_smart_display_24),
                                         contentDescription = null,
-                                        colorFilter = ColorFilter.tint(backgroundColor)
+                                        colorFilter = ColorFilter.tint(backgroundColor),
                                     )
                                 }
                             }
@@ -784,11 +774,11 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                 .border(
                                     width = 1.dp,
                                     color = if (livekitShouldConnect && !token.isNullOrEmpty()) successColor else colorPrimary,
-                                    shape = RoundedCornerShape(size = 2.dp)
+                                    shape = RoundedCornerShape(size = 2.dp),
                                 )
                                 .weight(1f)
                                 .height(40.dp)
-                                .padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 4.dp)
+                                .padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 4.dp),
                         ) {
                             Row(
                                 modifier = Modifier
@@ -800,7 +790,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                 Image(
                                     painter = painterResource(id = if (livekitShouldConnect && !token.isNullOrEmpty()) R.drawable.outline_phone_in_talk_24 else R.drawable.outline_call_24),
                                     contentDescription = null,
-                                    colorFilter = ColorFilter.tint(if (livekitShouldConnect && !token.isNullOrEmpty()) successColor else colorPrimary)
+                                    colorFilter = ColorFilter.tint(if (livekitShouldConnect && !token.isNullOrEmpty()) successColor else colorPrimary),
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 if (listUserSpeaking.isNotEmpty()) {
@@ -809,7 +799,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                         color = successColor,
                                         fontSize = 10.sp,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        overflow = TextOverflow.Ellipsis,
                                     )
                                 } else {
                                     Text(
@@ -817,7 +807,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                         color = successColor,
                                         fontSize = 10.sp,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        overflow = TextOverflow.Ellipsis,
                                     )
                                 }
                             }
@@ -829,7 +819,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                     .weight(1f)
                                     .height(40.dp),
                                 text = "Geser untuk akhiri stream",
-                                onConfirmed = { showStopConfirmDialog = true }
+                                onConfirmed = { showStopConfirmDialog = true },
                             )
                         } else {
                             Button(
@@ -841,23 +831,23 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                 shape = RoundedCornerShape(2.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = colorPrimary,
-                                    disabledContainerColor = Color.Gray
-                                )
+                                    disabledContainerColor = Color.Gray,
+                                ),
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
                                     Image(
                                         painter = painterResource(id = R.drawable.outline_smart_display_24),
                                         contentDescription = null,
-                                        colorFilter = ColorFilter.tint(backgroundColor)
+                                        colorFilter = ColorFilter.tint(backgroundColor),
                                     )
                                     Text(
                                         text = "Start Stream",
                                         color = backgroundColor,
                                         fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
                                     )
                                 }
                             }
@@ -871,17 +861,17 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                 .border(
                                     width = 1.dp,
                                     color = colorPrimary,
-                                    shape = RoundedCornerShape(size = 2.dp)
+                                    shape = RoundedCornerShape(size = 2.dp),
                                 )
                                 .width(44.dp)
                                 .height(40.dp)
-                                .padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 4.dp)
+                                .padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 4.dp),
                         ) {
                             Image(
                                 modifier = Modifier.align(Alignment.Center),
                                 painter = painterResource(id = R.drawable.outline_call_24),
                                 contentDescription = null,
-                                colorFilter = ColorFilter.tint(colorPrimary)
+                                colorFilter = ColorFilter.tint(colorPrimary),
                             )
                         }
                     }
@@ -896,17 +886,17 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                             .border(
                                 width = 1.dp,
                                 color = colorPrimary,
-                                shape = RoundedCornerShape(size = 2.dp)
+                                shape = RoundedCornerShape(size = 2.dp),
                             )
                             .width(44.dp)
                             .height(40.dp)
-                            .padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 4.dp)
+                            .padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 4.dp),
                     ) {
                         Image(
                             modifier = Modifier.align(Alignment.Center),
                             painter = painterResource(id = R.drawable.outline_flip_camera_ios_24),
                             contentDescription = null,
-                            colorFilter = ColorFilter.tint(colorPrimary)
+                            colorFilter = ColorFilter.tint(colorPrimary),
                         )
                     }
                 }
@@ -914,7 +904,6 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
 
             val ctx = context ?: return@Box
             val settings = AppSettingsManager.getInstance(ctx)
-
 
             if (livekitShouldConnect && !token.isNullOrEmpty()) {
                 RoomScope(
@@ -924,7 +913,6 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                     video = false,
                     connect = true,
                 ) {
-
                     // 1. Track lokal (mic)
                     val localTrackRefs by rememberTracks(sources = listOf(Track.Source.MICROPHONE))
                     val audioTracks = localTrackRefs.filter {
@@ -934,7 +922,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                     // 2. Remote audio tracks (sudah subscribed)
                     val remoteAudioTrackRefs by rememberTracks(
                         sources = listOf(Track.Source.MICROPHONE),
-                        onlySubscribed = true
+                        onlySubscribed = true,
                     )
                     val remoteAudioTracks = remoteAudioTrackRefs.filter {
                         it.participant is RemoteParticipant
@@ -957,9 +945,12 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                         val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
                         am.adjustStreamVolume(
                             AudioManager.STREAM_VOICE_CALL,
-                            if (livekitIsSpeakerMuted) AudioManager.ADJUST_MUTE
-                            else AudioManager.ADJUST_UNMUTE,
-                            0
+                            if (livekitIsSpeakerMuted) {
+                                AudioManager.ADJUST_MUTE
+                            } else {
+                                AudioManager.ADJUST_UNMUTE
+                            },
+                            0,
                         )
                         Log.d("LiveKit", "🔇 STREAM_VOICE_CALL muted=$livekitIsSpeakerMuted")
                     }
@@ -994,7 +985,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                 onLivekitDisconnect()
                                 livekitViewModel.clearLivekitToken()
                             },
-                            onJoin = null
+                            onJoin = null,
                         )
                     }
                 }
@@ -1005,21 +996,22 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                     onDismiss = { showStopStreamDialog = false },
                     audioTracks = emptyList(),
                     isMuted = livekitIsMuted,
-                    isSpeakerMuted = livekitIsSpeakerMuted,     // ← fix: tambah yang hilang
+                    isSpeakerMuted = livekitIsSpeakerMuted, // ← fix: tambah yang hilang
                     onMuteToggle = onLivekitMuteToggle,
-                    onSpeakerToggle = onLivekitSpeakerToggle,   // ← fix: tambah yang hilang
+                    onSpeakerToggle = onLivekitSpeakerToggle, // ← fix: tambah yang hilang
                     onEndCall = { },
-                    onJoin = { livekitViewModel.fetchLivekitToken() }
+                    onJoin = { livekitViewModel.fetchLivekitToken() },
                 )
             }
             if (showDialogMap) {
                 DialogMap(
-                    onDismiss = { showDialogMap = false }, deviceLocation = GeoPoint(
+                    onDismiss = { showDialogMap = false },
+                    deviceLocation = GeoPoint(
                         location?.latitude ?: -6.9828,
-                        location?.longitude ?: 110.4091
+                        location?.longitude ?: 110.4091,
                     ),
                     deviceMarkerIcon = R.drawable.ic_map,
-                    pocYaw = yaw
+                    pocYaw = yaw,
                 )
             }
 
@@ -1030,38 +1022,38 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                     properties = DialogProperties(
                         dismissOnBackPress = true,
                         dismissOnClickOutside = true,
-                        usePlatformDefaultWidth = false
-                    )
+                        usePlatformDefaultWidth = false,
+                    ),
                 ) {
                     Box(
                         Modifier
-                            .fillMaxWidth(0.7f)
+                            .fillMaxWidth(0.7f),
                     ) {
                         Box(
                             modifier =
-                                Modifier
-                                    .border(
-                                        width = 0.5.dp,
-                                        color = colorPrimary,
-                                        shape = RoundedCornerShape(
-                                            topStart = 2.dp,
-                                            topEnd = 2.dp,
-                                            bottomStart = 10.dp,
-                                            bottomEnd = 10.dp
-                                        )
-                                    )
-                                    .fillMaxWidth()
-                                    .matchParentSize()
-                                    .background(
-                                        color = Color(0x1A02D8FA),
-                                        shape = RoundedCornerShape(
-                                            topStart = 2.dp,
-                                            topEnd = 2.dp,
-                                            bottomStart = 10.dp,
-                                            bottomEnd = 10.dp
-                                        )
-                                    )
-                                    .padding(20.dp)
+                            Modifier
+                                .border(
+                                    width = 0.5.dp,
+                                    color = colorPrimary,
+                                    shape = RoundedCornerShape(
+                                        topStart = 2.dp,
+                                        topEnd = 2.dp,
+                                        bottomStart = 10.dp,
+                                        bottomEnd = 10.dp,
+                                    ),
+                                )
+                                .fillMaxWidth()
+                                .matchParentSize()
+                                .background(
+                                    color = Color(0x1A02D8FA),
+                                    shape = RoundedCornerShape(
+                                        topStart = 2.dp,
+                                        topEnd = 2.dp,
+                                        bottomStart = 10.dp,
+                                        bottomEnd = 10.dp,
+                                    ),
+                                )
+                                .padding(20.dp),
                         )
 
                         Box(
@@ -1072,26 +1064,26 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                     color = colorPrimary,
                                     shape = RoundedCornerShape(
                                         topStart = 2.dp,
-                                        topEnd = 2.dp
-                                    )
-                                )
+                                        topEnd = 2.dp,
+                                    ),
+                                ),
                         )
 
                         Box(
                             modifier = Modifier
                                 .padding(horizontal = 16.dp, vertical = 18.dp)
-                                .align(Alignment.TopCenter)
+                                .align(Alignment.TopCenter),
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Text(
                                     text = "Stop Stream",
                                     fontSize = 12.sp,
-                                    color = Color.White
+                                    color = Color.White,
                                 )
                                 Image(
                                     modifier = Modifier
@@ -1101,7 +1093,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                         .size(24.dp),
                                     painter = painterResource(id = R.drawable.outline_close_24),
                                     contentDescription = null,
-                                    colorFilter = ColorFilter.tint(Color.White)
+                                    colorFilter = ColorFilter.tint(Color.White),
                                 )
                             }
                         }
@@ -1111,7 +1103,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                             contentDescription = null,
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
-                                .size(28.dp)
+                                .size(28.dp),
                         )
 
                         Image(
@@ -1119,7 +1111,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                             contentDescription = null,
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
-                                .size(28.dp)
+                                .size(28.dp),
                         )
 
                         Column(
@@ -1128,19 +1120,17 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                 .padding(16.dp)
                                 .padding(top = 42.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-
                             Text(
                                 text = "Apakah Anda yakin ingin mengakhiri siaran (stream) ini?",
                                 color = Color.White,
-                                fontSize = 12.sp
+                                fontSize = 12.sp,
                             )
 
                             Row(
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
-
                                 Button(
                                     onClick = {
                                         showStopConfirmDialog = false
@@ -1152,13 +1142,13 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                     contentPadding = PaddingValues(0.dp),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = dangerColor,
-                                        disabledContainerColor = Color.Gray
-                                    )
+                                        disabledContainerColor = Color.Gray,
+                                    ),
                                 ) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
+                                        horizontalArrangement = Arrangement.Center,
                                     ) {
                                         Text(text = "Batal", color = Color.White)
                                     }
@@ -1177,13 +1167,13 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                     contentPadding = PaddingValues(0.dp),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = colorPrimary,
-                                        disabledContainerColor = Color.Gray
-                                    )
+                                        disabledContainerColor = Color.Gray,
+                                    ),
                                 ) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
+                                        horizontalArrangement = Arrangement.Center,
                                     ) {
                                         Text(text = "Stop Stream", color = backgroundColor)
                                     }
@@ -1201,7 +1191,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                     onSelect = { res ->
                         showResolutionDialog = false
                         onStartStream(res.width, res.height, res.bitrate)
-                    }
+                    },
                 )
             }
         }

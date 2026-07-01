@@ -20,7 +20,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import id.co.tigabersama.pochuaweistream.R
@@ -42,7 +41,7 @@ fun SplashContent() {
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundColor),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         // Logo tengah
         Image(
@@ -50,7 +49,7 @@ fun SplashContent() {
             contentDescription = null,
             modifier = Modifier
                 .size(120.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(8.dp)),
         )
 
         // Footer bawah
@@ -59,14 +58,14 @@ fun SplashContent() {
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 60.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Image(
                 painter = painterResource(id = R.drawable.alphanusa_logo),
                 contentDescription = null,
                 modifier = Modifier
                     .width(80.dp)
-                    .height(25.dp)
+                    .height(25.dp),
 
             )
             Text(
@@ -74,9 +73,8 @@ fun SplashContent() {
                 color = Color.White.copy(alpha = 0.7f),
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center,
-                lineHeight = 16.sp
+                lineHeight = 16.sp,
             )
         }
     }
 }
-

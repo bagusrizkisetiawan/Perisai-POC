@@ -7,8 +7,11 @@ import kotlin.text.replace
 object GoogleSatelliteTile :
     OnlineTileSourceBase(
         "Google-Satellite",
-        0, 20, 256, ".png",
-        arrayOf("https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}")
+        0,
+        20,
+        256,
+        ".png",
+        arrayOf("https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"),
     ) {
 
     override fun getTileURLString(pMapTileIndex: Long): String {

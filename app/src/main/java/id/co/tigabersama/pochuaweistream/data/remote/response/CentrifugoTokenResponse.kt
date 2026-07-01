@@ -4,9 +4,9 @@ import com.google.gson.annotations.SerializedName
 
 data class CentrifugoTokenResponse(
     @SerializedName("data") val data: CentrifugoTokenData,
-    @SerializedName("message") val message: String
+    @SerializedName("message") val message: String,
 )
 
 data class CentrifugoTokenData(
-    @SerializedName("token") val token: String
+    @SerializedName("token") val token: String,
 )

@@ -40,7 +40,7 @@ import kotlin.math.roundToInt
 fun SwipeToStopButton(
     modifier: Modifier = Modifier,
     text: String = "Geser untuk akhiri",
-    onConfirmed: () -> Unit
+    onConfirmed: () -> Unit,
 ) {
     val density = LocalDensity.current
     val thumbSize = 34.dp
@@ -60,14 +60,14 @@ fun SwipeToStopButton(
             .background(dangerColor.copy(alpha = 0.18f))
             .border(1.dp, dangerColor, RoundedCornerShape(2.dp))
             .onSizeChanged { trackWidthPx = it.width.toFloat() },
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
             color = Color.White,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = thumbSize)
+            modifier = Modifier.padding(start = thumbSize),
         )
 
         Box(
@@ -89,15 +89,15 @@ fun SwipeToStopButton(
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
                             offsetX = (offsetX + dragAmount).coerceIn(0f, maxOffset)
-                        }
+                        },
                     )
                 },
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Image(
                 painter = painterResource(id = R.drawable.outline_stop_circle_24),
                 contentDescription = null,
-                colorFilter = ColorFilter.tint(Color.White)
+                colorFilter = ColorFilter.tint(Color.White),
             )
         }
     }

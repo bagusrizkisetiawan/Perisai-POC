@@ -1,18 +1,17 @@
 package id.co.tigabersama.pochuaweistream.utils
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.os.Bundle
 import android.os.Looper
 import com.huawei.hms.location.FusedLocationProviderClient
 import com.huawei.hms.location.LocationCallback
 import com.huawei.hms.location.LocationRequest
 import com.huawei.hms.location.LocationResult
 import com.huawei.hms.location.LocationServices
-import android.location.LocationListener
-import android.location.LocationManager
-import android.os.Bundle
 
 interface ILocationHelper {
     fun getLastLocation(onResult: (Location?) -> Unit)
@@ -116,7 +115,7 @@ class GoogleLocationHelper(context: Context) : ILocationHelper {
 
         val request = com.google.android.gms.location.LocationRequest.Builder(
             com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
-            2000L
+            2000L,
         ).setMinUpdateIntervalMillis(1000L).build()
 
         callback = object : com.google.android.gms.location.LocationCallback() {
@@ -132,7 +131,7 @@ class GoogleLocationHelper(context: Context) : ILocationHelper {
     private fun requestSingleUpdate(onResult: (Location?) -> Unit) {
         val request = com.google.android.gms.location.LocationRequest.Builder(
             com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
-            3000L
+            3000L,
         ).setMinUpdateIntervalMillis(2000L)
             .setMaxUpdates(1)
             .build()
@@ -152,9 +151,6 @@ class GoogleLocationHelper(context: Context) : ILocationHelper {
         callback = null
     }
 }
-
-
-
 
 class NativeLocationHelper(context: Context) : ILocationHelper {
 
@@ -184,6 +180,7 @@ class NativeLocationHelper(context: Context) : ILocationHelper {
             override fun onLocationChanged(location: Location) {
                 onLocation(location)
             }
+
             // Overrides kosong ini wajib untuk Android lawas (di bawah API 30)
             @Deprecated("Deprecated in Java")
             override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
@@ -198,8 +195,8 @@ class NativeLocationHelper(context: Context) : ILocationHelper {
             locationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER,
                 2000L, // Interval 2 detik
-                0f,    // Jarak minimal 0 meter
-                locationListener!!
+                0f, // Jarak minimal 0 meter
+                locationListener!!,
             )
         }
 
@@ -208,7 +205,7 @@ class NativeLocationHelper(context: Context) : ILocationHelper {
                 LocationManager.NETWORK_PROVIDER,
                 2000L,
                 0f,
-                locationListener!!
+                locationListener!!,
             )
         }
     }

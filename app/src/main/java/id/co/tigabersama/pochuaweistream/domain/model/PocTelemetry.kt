@@ -14,14 +14,14 @@ data class PocData(
     @SerializedName("home_longitude") val homeLongitude: Double,
     @SerializedName("gps_satellite_count") val gpsSatelliteCount: Int,
     @SerializedName("gps_signal_level") val gpsSignalLevel: String,
-    @SerializedName("timestamp") val timestamp: Long = System.currentTimeMillis()
+    @SerializedName("timestamp") val timestamp: Long = System.currentTimeMillis(),
 )
 
 sealed class BatteryData {
     data class SingleBatteryState(
         @SerializedName("battery_percentage") val percentageRemaining: Int,
         @SerializedName("battery_voltage") val voltageLevel: Float,
-        @SerializedName("battery_status") val batteryStatus: BatteryStatus
+        @SerializedName("battery_status") val batteryStatus: BatteryStatus,
     ) : BatteryData()
 
     data class DualBatteryState(
@@ -30,18 +30,9 @@ sealed class BatteryData {
         @SerializedName("battery_status1") val batteryStatus1: BatteryStatus,
         @SerializedName("battery_percentage2") val percentageRemaining2: Int,
         @SerializedName("battery_voltage2") val voltageLevel2: Float,
-        @SerializedName("battery_status2") val batteryStatus2: BatteryStatus
+        @SerializedName("battery_status2") val batteryStatus2: BatteryStatus,
     ) : BatteryData()
 }
-
-enum class WebSocketState {
-    DISCONNECTED,
-    CONNECTING,
-    CONNECTED,
-    RECONNECTING,
-    ERROR
-}
-
 
 enum class BatteryStatus constructor(val index: Int) {
     /**
@@ -73,10 +64,8 @@ enum class BatteryStatus constructor(val index: Int) {
     /**
      * The state of the battery is unknown or the system is initializing
      */
-    UNKNOWN(5);
-
+    UNKNOWN(5),
 }
-
 
 fun getBatteryStatus(level: Int): BatteryStatus {
     return when {

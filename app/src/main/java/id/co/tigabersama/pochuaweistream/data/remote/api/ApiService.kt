@@ -34,16 +34,16 @@ interface ApiService {
     // ---- Centrifugo ----
     @POST("v1/mobile/auth/gentoken-centrifugo")
     suspend fun generateCentrifugoToken(
-        @Body request: CentrifugoTokenRequest
+        @Body request: CentrifugoTokenRequest,
     ): Response<CentrifugoTokenResponse>
 
     // ---- Draw ----
     @GET("v1/draw")
     suspend fun getDraw(
         @Query("long1") long1: Double,
-        @Query("lat1")  lat1: Double,
+        @Query("lat1") lat1: Double,
         @Query("long2") long2: Double,
-        @Query("lat2")  lat2: Double
+        @Query("lat2") lat2: Double,
     ): DrawResponse
 
     // ---- Livekit ----

@@ -26,11 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import dev.chrisbanes.haze.hazeChild
-import dev.chrisbanes.haze.materials.HazeMaterials
 import id.co.tigabersama.pochuaweistream.R
-import id.co.tigabersama.pochuaweistream.ui.components.backgroundColor
-import id.co.tigabersama.pochuaweistream.ui.components.colorPrimary
 
 /**
  * Pilihan resolusi video untuk RTMP stream.
@@ -41,7 +37,7 @@ data class StreamResolution(
     val subtitle: String,
     val width: Int,
     val height: Int,
-    val bitrate: Int
+    val bitrate: Int,
 )
 
 val defaultStreamResolutions = listOf(
@@ -62,40 +58,39 @@ fun DialogResolution(
         properties = DialogProperties(
             dismissOnBackPress = true,
             dismissOnClickOutside = true,
-            usePlatformDefaultWidth = false
-        )
+            usePlatformDefaultWidth = false,
+        ),
     ) {
         Box(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 24.dp),
         ) {
-
             Box(
                 modifier =
-                    Modifier
-                        .border(
-                            width = 0.5.dp,
-                            color = colorPrimary,
-                            shape = RoundedCornerShape(
-                                topStart = 2.dp,
-                                topEnd = 2.dp,
-                                bottomStart = 10.dp,
-                                bottomEnd = 10.dp
-                            )
-                        )
-                        .fillMaxWidth()
-                        .matchParentSize()
-                        .background(
-                            color = Color(0x1A02D8FA),
-                            shape = RoundedCornerShape(
-                                topStart = 2.dp,
-                                topEnd = 2.dp,
-                                bottomStart = 10.dp,
-                                bottomEnd = 10.dp
-                            )
-                        )
-                        .padding(20.dp)
+                Modifier
+                    .border(
+                        width = 0.5.dp,
+                        color = colorPrimary,
+                        shape = RoundedCornerShape(
+                            topStart = 2.dp,
+                            topEnd = 2.dp,
+                            bottomStart = 10.dp,
+                            bottomEnd = 10.dp,
+                        ),
+                    )
+                    .fillMaxWidth()
+                    .matchParentSize()
+                    .background(
+                        color = Color(0x1A02D8FA),
+                        shape = RoundedCornerShape(
+                            topStart = 2.dp,
+                            topEnd = 2.dp,
+                            bottomStart = 10.dp,
+                            bottomEnd = 10.dp,
+                        ),
+                    )
+                    .padding(20.dp),
             )
 
             Box(
@@ -106,9 +101,9 @@ fun DialogResolution(
                         color = colorPrimary,
                         shape = RoundedCornerShape(
                             topStart = 2.dp,
-                            topEnd = 2.dp
-                        )
-                    )
+                            topEnd = 2.dp,
+                        ),
+                    ),
             )
 
             Image(
@@ -116,7 +111,7 @@ fun DialogResolution(
                 contentDescription = null,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .size(28.dp)
+                    .size(28.dp),
             )
 
             Image(
@@ -124,25 +119,25 @@ fun DialogResolution(
                 contentDescription = null,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .size(28.dp)
+                    .size(28.dp),
             )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp)
+                    .padding(20.dp),
             ) {
                 // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
                         text = "Pilih Resolusi Video",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = Color.White,
                     )
                     Image(
                         modifier = Modifier
@@ -150,7 +145,7 @@ fun DialogResolution(
                             .size(22.dp),
                         painter = painterResource(id = R.drawable.outline_close_24),
                         contentDescription = null,
-                        colorFilter = ColorFilter.tint(Color.White)
+                        colorFilter = ColorFilter.tint(Color.White),
                     )
                 }
 
@@ -158,7 +153,7 @@ fun DialogResolution(
                     text = "Stream akan dimulai setelah resolusi dipilih.",
                     fontSize = 10.sp,
                     color = Color.LightGray,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp),
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -171,30 +166,30 @@ fun DialogResolution(
                             .border(
                                 width = 1.dp,
                                 color = colorPrimary,
-                                shape = RoundedCornerShape(2.dp)
+                                shape = RoundedCornerShape(2.dp),
                             )
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Column {
                             Text(
                                 text = res.label,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = Color.White,
                             )
                             Text(
                                 text = res.subtitle,
                                 fontSize = 9.sp,
-                                color = Color.LightGray
+                                color = Color.LightGray,
                             )
                         }
                         Image(
                             modifier = Modifier.size(20.dp),
                             painter = painterResource(id = R.drawable.outline_smart_display_24),
                             contentDescription = null,
-                            colorFilter = ColorFilter.tint(colorPrimary)
+                            colorFilter = ColorFilter.tint(colorPrimary),
                         )
                     }
                     if (index != resolutions.lastIndex) {

@@ -10,10 +10,10 @@ data class UserData(
     val SerialNumber: String? = null,
     val LocationName: String? = null,
     val Latitude: Double? = null,
-    val Longitude: Double? = null
+    val Longitude: Double? = null,
 )
 
 data class UserResponse(
     val message: String,
-    val data: UserData
+    val data: UserData,
 )

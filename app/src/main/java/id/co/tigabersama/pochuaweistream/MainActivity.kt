@@ -17,8 +17,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import id.co.tigabersama.pochuaweistream.ui.screen.home.HomeScreen
 import id.co.tigabersama.pochuaweistream.data.local.AppSettingsManager
+import id.co.tigabersama.pochuaweistream.ui.screen.home.HomeScreen
 import id.co.tigabersama.pochuaweistream.ui.screen.setting.SettingsScreen
 import id.co.tigabersama.pochuaweistream.ui.screen.splash.SplashScreen
 import id.co.tigabersama.pochuaweistream.ui.theme.POCHuaweiStreamTheme
@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     App(
                         name = "Android",
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier.padding(innerPadding),
                     )
                 }
             }
@@ -59,16 +59,15 @@ fun App(name: String, modifier: Modifier = Modifier) {
 
     NavHost(
         navController = navController,
-        startDestination = "splash"
+        startDestination = "splash",
     ) {
-
         composable("splash") {
-            SplashScreen (
+            SplashScreen(
                 onFinished = {
                     navController.navigate("home") {
                         popUpTo("splash") { inclusive = true }
                     }
-                }
+                },
             )
         }
 
@@ -76,7 +75,7 @@ fun App(name: String, modifier: Modifier = Modifier) {
             HomeScreen(
                 onNavigateToSettings = {
                     navController.navigate("settings")
-                }
+                },
             )
         }
 
@@ -85,13 +84,8 @@ fun App(name: String, modifier: Modifier = Modifier) {
                 settingsManager = settingsManager,
                 onBackPressed = {
                     navController.popBackStack()
-                }
+                },
             )
         }
     }
 }
-
-
-
-
-

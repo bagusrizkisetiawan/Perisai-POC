@@ -12,7 +12,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-
 @Composable
 fun LocationChip(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -20,7 +19,7 @@ fun LocationChip(label: String, value: String) {
             text = label,
             color = Color(0xFF90CAF9),
             fontSize = 8.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = value, color = Color.White, fontSize = 10.sp)

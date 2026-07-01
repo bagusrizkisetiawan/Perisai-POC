@@ -3,7 +3,7 @@ package id.co.tigabersama.pochuaweistream.data.remote.response
 data class ParticipantsResponse(
     val status: String,
     val message: String,
-    val data: List<Participant>
+    val data: List<Participant>,
 )
 
 data class Participant(
@@ -11,5 +11,5 @@ data class Participant(
     val joined_at: Long,
     val name: String,
     val sid: String,
-    val state: String
+    val state: String,
 )

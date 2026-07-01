@@ -8,7 +8,7 @@ import okhttp3.Response
  * Token diambil lewat [tokenProvider] agar selalu mengikuti token terbaru.
  */
 class AuthInterceptor(
-    private val tokenProvider: () -> String?
+    private val tokenProvider: () -> String?,
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()

@@ -1,6 +1,5 @@
 package id.co.tigabersama.pochuaweistream.ui.screen.setting
 
-import id.co.tigabersama.pochuaweistream.data.local.AppSettingsManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -40,13 +39,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import id.co.tigabersama.pochuaweistream.BuildConfig
-
+import id.co.tigabersama.pochuaweistream.data.local.AppSettingsManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     settingsManager: AppSettingsManager,
-    onBackPressed: () -> Unit
+    onBackPressed: () -> Unit,
 ) {
     var baseUrl by remember { mutableStateOf(settingsManager.getBaseUrl()) }
     var centrifugoUrl by remember { mutableStateOf(settingsManager.getCentrifugoWebSocketUrl()) }
@@ -65,13 +64,13 @@ fun SettingsScreen(
                     IconButton(onClick = onBackPressed) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
                         )
                     }
-                }
+                },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -79,18 +78,18 @@ fun SettingsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
                 text = "Server Configuration",
                 fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
             )
 
             Text(
                 text = "Configure the server URLs for the application. Changes will take effect after restarting the app.",
                 fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -103,7 +102,7 @@ fun SettingsScreen(
                 placeholder = { Text("e.g., http://localhost:3000") },
                 supportingText = { Text("API server base URL") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
             )
 
             // Centrifugo WebSocket URL Setting
@@ -114,7 +113,7 @@ fun SettingsScreen(
                 placeholder = { Text("e.g., ws://localhost:8000/connection/websocket") },
                 supportingText = { Text("WebSocket URL for real-time communication") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
             )
 
             // RTMP URL Setting
@@ -125,7 +124,7 @@ fun SettingsScreen(
                 placeholder = { Text("e.g., rtmp://localhost/live") },
                 supportingText = { Text("Base RTMP URL for video streaming") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
             )
 
             // LIVEKIT URL Setting
@@ -136,7 +135,7 @@ fun SettingsScreen(
                 placeholder = { Text("e.g., rtmp://localhost/livekit") },
                 supportingText = { Text("Base RTMP URL for comunication streaming") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -145,37 +144,37 @@ fun SettingsScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                ),
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
                         text = "Default Values",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
                     )
                     Text(
                         text = "Base URL: ${BuildConfig.BASE_URL}",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         text = "Centrifugo URL: ${BuildConfig.CENTRIFUGO_WEBSOCKET_URL}",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         text = "RTMP URL: ${BuildConfig.RTMP_URL}",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         text = "RTMP URL: ${BuildConfig.LIVEKIT_URL}",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -191,7 +190,7 @@ fun SettingsScreen(
                     settingsManager.seLivekitUrl(livekitUrl)
                     showSaveSnackbar = true
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Save Settings")
             }
@@ -199,7 +198,7 @@ fun SettingsScreen(
             // Reset Button
             OutlinedButton(
                 onClick = { showResetDialog = true },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Reset to Defaults")
             }
@@ -211,7 +210,7 @@ fun SettingsScreen(
         if (showSaveSnackbar) {
             snackbarHostState.showSnackbar(
                 message = "Settings saved successfully. Please restart the app for changes to take effect.",
-                duration = SnackbarDuration.Long
+                duration = SnackbarDuration.Long,
             )
             showSaveSnackbar = false
         }
@@ -233,7 +232,7 @@ fun SettingsScreen(
                         livekitUrl = settingsManager.getLivekitUrl()
                         showResetDialog = false
                         showSaveSnackbar = true
-                    }
+                    },
                 ) {
                     Text("Reset")
                 }
@@ -242,7 +241,7 @@ fun SettingsScreen(
                 TextButton(onClick = { showResetDialog = false }) {
                     Text("Cancel")
                 }
-            }
+            },
         )
     }
 }

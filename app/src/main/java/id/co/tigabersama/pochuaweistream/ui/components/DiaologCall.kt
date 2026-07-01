@@ -25,8 +25,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -59,13 +57,9 @@ import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.materials.HazeMaterials
 import id.co.tigabersama.pochuaweistream.R
 import id.co.tigabersama.pochuaweistream.data.remote.api.ApiConfig
+import id.co.tigabersama.pochuaweistream.data.remote.response.Participant
 import id.co.tigabersama.pochuaweistream.ui.viewmodel.LivekitViewModel
 import id.co.tigabersama.pochuaweistream.ui.viewmodel.LivekitViewModelFactory
-import id.co.tigabersama.pochuaweistream.data.remote.response.Participant
-import id.co.tigabersama.pochuaweistream.ui.components.backgroundColor
-import id.co.tigabersama.pochuaweistream.ui.components.colorPrimary
-import id.co.tigabersama.pochuaweistream.ui.components.dangerColor
-import id.co.tigabersama.pochuaweistream.ui.components.successColor
 import io.livekit.android.compose.types.TrackReference
 import io.livekit.android.events.ParticipantEvent
 import io.livekit.android.events.collect
@@ -99,40 +93,40 @@ fun DialogCall(
         properties = DialogProperties(
             dismissOnBackPress = true,
             dismissOnClickOutside = true,
-            usePlatformDefaultWidth = false
-        )
+            usePlatformDefaultWidth = false,
+        ),
     ) {
         Box(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 32.dp)
+                .padding(horizontal = 16.dp, vertical = 32.dp),
         ) {
             Box(
                 modifier =
-                    Modifier
-                        .border(
-                            width = 0.5.dp,
-                            color = colorPrimary,
-                            shape = RoundedCornerShape(
-                                topStart = 2.dp,
-                                topEnd = 2.dp,
-                                bottomStart = 10.dp,
-                                bottomEnd = 10.dp
-                            )
-                        )
-                        .hazeChild(state = hazeState, style = HazeMaterials.ultraThin())
-                        .fillMaxWidth()
-                        .matchParentSize()
-                        .background(
-                            color = Color(0x1A02D8FA),
-                            shape = RoundedCornerShape(
-                                topStart = 2.dp,
-                                topEnd = 2.dp,
-                                bottomStart = 10.dp,
-                                bottomEnd = 10.dp
-                            )
-                        )
-                        .padding(20.dp)
+                Modifier
+                    .border(
+                        width = 0.5.dp,
+                        color = colorPrimary,
+                        shape = RoundedCornerShape(
+                            topStart = 2.dp,
+                            topEnd = 2.dp,
+                            bottomStart = 10.dp,
+                            bottomEnd = 10.dp,
+                        ),
+                    )
+                    .hazeChild(state = hazeState, style = HazeMaterials.ultraThin())
+                    .fillMaxWidth()
+                    .matchParentSize()
+                    .background(
+                        color = Color(0x1A02D8FA),
+                        shape = RoundedCornerShape(
+                            topStart = 2.dp,
+                            topEnd = 2.dp,
+                            bottomStart = 10.dp,
+                            bottomEnd = 10.dp,
+                        ),
+                    )
+                    .padding(20.dp),
             )
 
             Box(
@@ -143,26 +137,26 @@ fun DialogCall(
                         color = colorPrimary,
                         shape = RoundedCornerShape(
                             topStart = 2.dp,
-                            topEnd = 2.dp
-                        )
-                    )
+                            topEnd = 2.dp,
+                        ),
+                    ),
             )
 
             Box(
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 18.dp)
-                    .align(Alignment.TopCenter)
+                    .align(Alignment.TopCenter),
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
                         text = "Tactical Communication",
                         fontSize = 10.sp,
-                        color = Color.White
+                        color = Color.White,
                     )
                     Image(
                         modifier = Modifier
@@ -172,7 +166,7 @@ fun DialogCall(
                             .size(24.dp),
                         painter = painterResource(id = R.drawable.outline_close_24),
                         contentDescription = null,
-                        colorFilter = ColorFilter.tint(Color.White)
+                        colorFilter = ColorFilter.tint(Color.White),
                     )
                 }
             }
@@ -182,7 +176,7 @@ fun DialogCall(
                 contentDescription = null,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .size(28.dp)
+                    .size(28.dp),
             )
 
             Image(
@@ -190,16 +184,15 @@ fun DialogCall(
                 contentDescription = null,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .size(28.dp)
+                    .size(28.dp),
             )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(26.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-
                 if (isConnected) {
                     Spacer(modifier = Modifier.height(36.dp))
 
@@ -207,7 +200,7 @@ fun DialogCall(
                         audioTracks = audioTracks,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 260.dp)
+                            .heightIn(max = 260.dp),
                     )
 
                     if (audioTracks.isEmpty()) {
@@ -219,14 +212,13 @@ fun DialogCall(
 
                 // BUTTON JOIN
                 if (!isConnected) {
-
                     if (participants.isEmpty()) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 40.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Image(
                                 painter = painterResource(id = R.drawable.outline_group_off_24),
@@ -234,36 +226,34 @@ fun DialogCall(
                                 modifier = Modifier
                                     .align(Alignment.CenterHorizontally)
                                     .size(60.dp),
-                                colorFilter = ColorFilter.tint(colorPrimary)
+                                colorFilter = ColorFilter.tint(colorPrimary),
                             )
                             Text(
                                 modifier = Modifier.fillMaxWidth(),
                                 text = "No one else in Tactical Communication Room",
                                 color = Color.White,
                                 fontSize = 12.sp,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
                             )
                             Text(
                                 modifier = Modifier.fillMaxWidth(),
                                 text = "Join Tactical Communication to interact with participants",
                                 color = Color.White,
                                 fontSize = 8.sp,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
 
                             )
                         }
-                    }else{
+                    } else {
                         ParticipantsJoined(participants = participants)
                     }
-
 
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.Center,
                     ) {
-
                         Box(
                             Modifier
                                 .clickable {
@@ -272,27 +262,29 @@ fun DialogCall(
                                 .border(
                                     width = 1.dp,
                                     color = Color.White,
-                                    shape = RoundedCornerShape(4.dp)
+                                    shape = RoundedCornerShape(4.dp),
                                 )
                                 .background(
                                     if (isSpeakerMuted) Color.Transparent else Color.White,
-                                    RoundedCornerShape(4.dp)
+                                    RoundedCornerShape(4.dp),
                                 )
                                 .width(42.dp)
                                 .height(42.dp)
-                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
                         ) {
-
                             Image(
                                 modifier = Modifier
                                     .size(24.dp)
                                     .align(Alignment.Center),
                                 painter = painterResource(
-                                    id = if (isSpeakerMuted) R.drawable.outline_volume_off_24
-                                    else R.drawable.outline_volume_up_24
+                                    id = if (isSpeakerMuted) {
+                                        R.drawable.outline_volume_off_24
+                                    } else {
+                                        R.drawable.outline_volume_up_24
+                                    },
                                 ),
                                 contentDescription = null,
-                                colorFilter = ColorFilter.tint(if (isSpeakerMuted) Color.White else Color.Black)
+                                colorFilter = ColorFilter.tint(if (isSpeakerMuted) Color.White else Color.Black),
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
@@ -305,27 +297,29 @@ fun DialogCall(
                                     .border(
                                         width = 1.dp,
                                         color = Color.White,
-                                        shape = RoundedCornerShape(4.dp)
+                                        shape = RoundedCornerShape(4.dp),
                                     )
                                     .background(
                                         if (isMuted) Color.Transparent else Color.White,
-                                        RoundedCornerShape(4.dp)
+                                        RoundedCornerShape(4.dp),
                                     )
                                     .width(42.dp)
                                     .height(42.dp)
-                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                                    .padding(horizontal = 12.dp, vertical = 4.dp),
                             ) {
-
                                 Image(
                                     modifier = Modifier
                                         .size(24.dp)
                                         .align(Alignment.Center),
                                     painter = painterResource(
-                                        id = if (isMuted) R.drawable.outline_mic_off_24
-                                        else R.drawable.outline_mic_24
+                                        id = if (isMuted) {
+                                            R.drawable.outline_mic_off_24
+                                        } else {
+                                            R.drawable.outline_mic_24
+                                        },
                                     ),
                                     contentDescription = null,
-                                    colorFilter = ColorFilter.tint(if (isMuted) Color.White else Color.Black)
+                                    colorFilter = ColorFilter.tint(if (isMuted) Color.White else Color.Black),
                                 )
                             }
 //                            Spacer(modifier = Modifier.height(6.dp))
@@ -335,10 +329,7 @@ fun DialogCall(
 //                                fontSize = 10.sp
 //                            )
                         }
-
-
                     }
-
 
                     Spacer(modifier = Modifier.height(12.dp))
                     Box(
@@ -349,18 +340,18 @@ fun DialogCall(
                             .background(colorPrimary, RoundedCornerShape(2.dp))
                             .fillMaxWidth()
                             .height(36.dp)
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
                     ) {
                         Row(
                             modifier = Modifier.align(Alignment.Center),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                            horizontalArrangement = Arrangement.Center,
                         ) {
                             Image(
                                 modifier = Modifier.size(12.dp),
                                 painter = painterResource(id = R.drawable.outline_call_24),
                                 contentDescription = null,
-                                colorFilter = ColorFilter.tint(backgroundColor)
+                                colorFilter = ColorFilter.tint(backgroundColor),
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
@@ -375,7 +366,7 @@ fun DialogCall(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 16.dp),
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.Center,
                     ) {
                         Box(
                             Modifier
@@ -385,27 +376,29 @@ fun DialogCall(
                                 .border(
                                     width = 1.dp,
                                     color = Color.White,
-                                    shape = RoundedCornerShape(4.dp)
+                                    shape = RoundedCornerShape(4.dp),
                                 )
                                 .background(
                                     if (isSpeakerMuted) Color.Transparent else Color.White,
-                                    RoundedCornerShape(4.dp)
+                                    RoundedCornerShape(4.dp),
                                 )
                                 .width(42.dp)
                                 .height(42.dp)
-                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
                         ) {
-
                             Image(
                                 modifier = Modifier
                                     .size(24.dp)
                                     .align(Alignment.Center),
                                 painter = painterResource(
-                                    id = if (isSpeakerMuted) R.drawable.outline_volume_off_24
-                                    else R.drawable.outline_volume_up_24
+                                    id = if (isSpeakerMuted) {
+                                        R.drawable.outline_volume_off_24
+                                    } else {
+                                        R.drawable.outline_volume_up_24
+                                    },
                                 ),
                                 contentDescription = null,
-                                colorFilter = ColorFilter.tint(if (isSpeakerMuted) Color.White else Color.Black)
+                                colorFilter = ColorFilter.tint(if (isSpeakerMuted) Color.White else Color.Black),
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
@@ -417,27 +410,29 @@ fun DialogCall(
                                 .border(
                                     width = 1.dp,
                                     color = Color.White,
-                                    shape = RoundedCornerShape(4.dp)
+                                    shape = RoundedCornerShape(4.dp),
                                 )
                                 .background(
                                     if (isMuted) Color.Transparent else Color.White,
-                                    RoundedCornerShape(4.dp)
+                                    RoundedCornerShape(4.dp),
                                 )
                                 .width(42.dp)
                                 .height(42.dp)
-                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
                         ) {
-
                             Image(
                                 modifier = Modifier
                                     .size(24.dp)
                                     .align(Alignment.Center),
                                 painter = painterResource(
-                                    id = if (isMuted) R.drawable.outline_mic_off_24
-                                    else R.drawable.outline_mic_24
+                                    id = if (isMuted) {
+                                        R.drawable.outline_mic_off_24
+                                    } else {
+                                        R.drawable.outline_mic_24
+                                    },
                                 ),
                                 contentDescription = null,
-                                colorFilter = ColorFilter.tint(if (isMuted) Color.White else Color.Black)
+                                colorFilter = ColorFilter.tint(if (isMuted) Color.White else Color.Black),
                             )
                         }
 
@@ -450,16 +445,15 @@ fun DialogCall(
                                 .background(dangerColor, RoundedCornerShape(4.dp))
                                 .width(42.dp)
                                 .height(42.dp)
-                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
                         ) {
-
                             Image(
                                 modifier = Modifier
                                     .size(24.dp)
                                     .align(Alignment.Center),
                                 painter = painterResource(id = R.drawable.outline_call_end_24),
                                 contentDescription = null,
-                                colorFilter = ColorFilter.tint(Color.White)
+                                colorFilter = ColorFilter.tint(Color.White),
                             )
                         }
                     }
@@ -469,22 +463,18 @@ fun DialogCall(
     }
 }
 
-
 @Composable
 fun ParticipantsJoined(participants: List<Participant>) {
-
     val maxVisible = 2
     val visibleParticipants = participants.take(maxVisible)
     val remainingCount = participants.size - maxVisible
 
     Column(modifier = Modifier.padding(vertical = 40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-
         // === AVATAR STACK ===
         Box(
             modifier = Modifier.height(40.dp),
-            contentAlignment = Alignment.CenterStart
+            contentAlignment = Alignment.CenterStart,
         ) {
-
             Row {
                 visibleParticipants.forEachIndexed { index, participant ->
                     Box(
@@ -494,13 +484,13 @@ fun ParticipantsJoined(participants: List<Participant>) {
                             .clip(CircleShape)
                             .background(backgroundColor)
                             .border(2.dp, colorPrimary, CircleShape),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         val initial = participant.name?.take(1)?.uppercase() ?: "?"
                         Text(
                             text = initial,
                             color = Color.White,
-                            fontSize = 10.sp
+                            fontSize = 10.sp,
                         )
                     }
                 }
@@ -514,12 +504,12 @@ fun ParticipantsJoined(participants: List<Participant>) {
                             .clip(CircleShape)
                             .background(Color(0xFF1E3A5F))
                             .border(2.dp, colorPrimary, CircleShape),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = "+$remainingCount",
                             color = Color.White,
-                            fontSize = 10.sp
+                            fontSize = 10.sp,
                         )
                     }
                 }
@@ -533,7 +523,7 @@ fun ParticipantsJoined(participants: List<Participant>) {
             text = buildJoinedText(participants),
             color = Color.White,
             fontSize = 8.sp,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
     }
 }
@@ -552,11 +542,10 @@ fun buildJoinedText(participants: List<Participant>): String {
     }
 }
 
-
 @Composable
 fun ParticipantsGrid(
     audioTracks: List<TrackReference>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     if (audioTracks.isEmpty()) return
 
@@ -573,23 +562,23 @@ fun ParticipantsGrid(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),   // ✅ scrollable
-            verticalArrangement = Arrangement.spacedBy(gap)
+                .verticalScroll(rememberScrollState()), // ✅ scrollable
+            verticalArrangement = Arrangement.spacedBy(gap),
         ) {
             rows.forEach { rowItems ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally)
+                    horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally),
                 ) {
                     rowItems.forEach { trackRef ->
                         Box(
                             modifier = Modifier
                                 .width(itemWidth)
-                                .height(itemHeight)        // ✅ tinggi konsisten
+                                .height(itemHeight), // ✅ tinggi konsisten
                         ) {
                             ParticipantBox(
                                 trackRef = trackRef,
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize(),
                             )
                         }
                     }
@@ -598,6 +587,7 @@ fun ParticipantsGrid(
         }
     }
 }
+
 /**
  * Aturan pembagian baris:
  * - 1 → [1]
@@ -617,7 +607,7 @@ private fun <T> chunkedRows(items: List<T>): List<List<T>> = when (items.size) {
 @Composable
 private fun ParticipantBox(
     trackRef: TrackReference,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var isSpeaking by remember(trackRef.participant) {
         mutableStateOf(trackRef.participant.isSpeaking)
@@ -654,28 +644,28 @@ private fun ParticipantBox(
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 600, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
+            repeatMode = RepeatMode.Reverse,
         ),
-        label = "pulse_alpha"
+        label = "pulse_alpha",
     )
 
     val borderColor = if (isSpeaking) colorPrimary else Color.Transparent
 
     Box(
-        modifier = modifier                                  // ✅ ikut parent (fillMaxSize)
+        modifier = modifier // ✅ ikut parent (fillMaxSize)
             .border(
                 width = if (isSpeaking) 1.5.dp else 0.5.dp,
                 color = borderColor,
-                shape = RoundedCornerShape(2.dp)
+                shape = RoundedCornerShape(2.dp),
             )
             .clip(RoundedCornerShape(2.dp))
             .background(Color(0x80041F44))
             .padding(16.dp),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
         ) {
             // Avatar Inisial
             Box(
@@ -686,9 +676,9 @@ private fun ParticipantBox(
                     .border(
                         width = 2.dp,
                         color = if (isSpeaking) Color.White.copy(alpha = pulseAlpha) else Color.Transparent,
-                        shape = CircleShape
+                        shape = CircleShape,
                     ),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 val initial = trackRef.participant.name?.take(1)?.uppercase() ?: "?"
                 Text(text = initial, color = Color.White, fontSize = 10.sp)
@@ -705,7 +695,7 @@ private fun ParticipantBox(
                 fontSize = 10.sp,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -713,8 +703,11 @@ private fun ParticipantBox(
             Image(
                 modifier = Modifier.size(16.dp),
                 painter = painterResource(
-                    id = if (isMuted) R.drawable.outline_mic_off_24
-                    else R.drawable.outline_mic_24
+                    id = if (isMuted) {
+                        R.drawable.outline_mic_off_24
+                    } else {
+                        R.drawable.outline_mic_24
+                    },
                 ),
                 contentDescription = null,
                 colorFilter = ColorFilter.tint(
@@ -723,8 +716,8 @@ private fun ParticipantBox(
                         !isMuted -> successColor
                         isSpeaking -> colorPrimary
                         else -> Color.LightGray
-                    }
-                )
+                    },
+                ),
             )
         }
     }
