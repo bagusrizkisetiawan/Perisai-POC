@@ -21,5 +21,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "POC Huawei Stream"
+rootProject.name = "PERISAI POC"
 include(":app")

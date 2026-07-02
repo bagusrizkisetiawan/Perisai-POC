@@ -43,13 +43,13 @@ spotless {
 }
 
 android {
-    namespace = "id.co.tigabersama.pochuaweistream"
+    namespace = "id.co.alphanusa.perisaipoc"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "id.co.tigabersama.pochuaweistream"
+        applicationId = "id.co.alphanusa.perisaipoc"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
