@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -63,7 +64,6 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -80,7 +80,6 @@ import com.pedro.encoder.utils.gl.AspectRatioMode
 import com.pedro.library.rtmp.RtmpCamera2
 import com.pedro.library.view.OpenGlView
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.materials.HazeMaterials
 import id.co.alphanusa.perisaipoc.data.local.AppSettingsManager
@@ -94,10 +93,8 @@ import id.co.alphanusa.perisaipoc.realtime.CentrifugoConnectionState
 import id.co.alphanusa.perisaipoc.ui.components.AlertStream
 import id.co.alphanusa.perisaipoc.ui.components.ConnectionStatusBar
 import id.co.alphanusa.perisaipoc.ui.components.DialogCall
-import id.co.alphanusa.perisaipoc.ui.components.DialogMap
 import id.co.alphanusa.perisaipoc.ui.components.DialogResolution
 import id.co.alphanusa.perisaipoc.ui.components.OsmdroidMapView
-import id.co.alphanusa.perisaipoc.ui.components.SwipeToStopButton
 import id.co.alphanusa.perisaipoc.ui.components.backgroundColor
 import id.co.alphanusa.perisaipoc.ui.components.colorPrimary
 import id.co.alphanusa.perisaipoc.ui.components.dangerColor
@@ -602,8 +599,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                 .background(backgroundColor)
                 .navigationBarsPadding(),
         ) {
-
-            Column() {
+            Column {
                 ConnectionStatusBar(
                     username = user?.Name?.trim(),
                     connectionState = connectionState,
@@ -616,25 +612,25 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                 )
 
                 Box(
-                    modifier = Modifier.weight(1f)
-                ){
+                    modifier = Modifier.weight(1f),
+                ) {
                     Box(
-                        modifier = if (swipMapToCam){
+                        modifier = if (swipMapToCam) {
                             Modifier
                                 .width(140.dp)
                                 .height(140.dp)
                                 .align(Alignment.TopStart)
                                 .padding(16.dp)
                                 .zIndex(0.2f)
-                        }else {
+                        } else {
                             Modifier.fillMaxSize()
-                        }
-                    ){
+                        },
+                    ) {
                         if (hasPermissions) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .clip(RoundedCornerShape(4.dp))
+                                    .clip(RoundedCornerShape(4.dp)),
                             ) {
                                 AndroidView(
                                     factory = { context ->
@@ -696,19 +692,17 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                         }
                     }
 
-
-
                     Box(
                         modifier =
-                            if (swipMapToCam){
-                                Modifier.fillMaxSize().zIndex(0.1f)
-                            }else {
-                                Modifier
-                                    .width(140.dp)
-                                    .height(140.dp)
-                                    .align(Alignment.TopStart)
-                                    .padding(16.dp)
-                            }
+                        if (swipMapToCam) {
+                            Modifier.fillMaxSize().zIndex(0.1f)
+                        } else {
+                            Modifier
+                                .width(140.dp)
+                                .height(140.dp)
+                                .align(Alignment.TopStart)
+                                .padding(16.dp)
+                        },
                     ) {
                         OsmdroidMapView(
                             modifier = Modifier
@@ -747,195 +741,119 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
                             .hazeChild(state = hazeState, style = HazeMaterials.ultraThin())
-                            .background(color = Color(0x80070C28))
                             .padding(horizontal = 16.dp, vertical = 24.dp)
                             .zIndex(0.4f),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            // Tombol Stream
+                            val livekitConnected =
+                                livekitShouldConnect && !token.isNullOrEmpty()
 
-                            if (livekitShouldConnect && !token.isNullOrEmpty()) {
-                                if (isStreaming) {
-                                    SwipeToStopButton(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(40.dp),
-                                        onConfirmed = { showStopConfirmDialog = true },
-                                    )
-                                } else {
-                                    Button(
-                                        onClick = onStreamClick,
-                                        enabled = hasPermissions,
-                                        modifier = Modifier
-                                            .width(44.dp)
-                                            .height(40.dp),
-                                        shape = RoundedCornerShape(2.dp),
-                                        contentPadding = PaddingValues(0.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = colorPrimary,
-                                            disabledContainerColor = Color.Gray,
-                                        ),
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.Center,
-                                        ) {
-                                            Image(
-                                                painter = painterResource(id = R.drawable.outline_smart_display_24),
-                                                contentDescription = null,
-                                                colorFilter = ColorFilter.tint(backgroundColor),
-                                            )
-                                        }
-                                    }
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Box(
-                                    Modifier
-                                        .clickable {
-                                            showStopStreamDialog = true
-                                        }
-                                        .border(
-                                            width = 1.dp,
-                                            color = if (livekitShouldConnect && !token.isNullOrEmpty()) successColor else colorPrimary,
-                                            shape = RoundedCornerShape(size = 2.dp),
-                                        )
-                                        .weight(1f)
-                                        .height(40.dp)
-                                        .padding(
-                                            start = 12.dp,
-                                            top = 4.dp,
-                                            end = 12.dp,
-                                            bottom = 4.dp
-                                        ),
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .fillMaxHeight(),
-                                        horizontalArrangement = Arrangement.Start,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Image(
-                                            painter = painterResource(id = if (livekitShouldConnect && !token.isNullOrEmpty()) R.drawable.outline_phone_in_talk_24 else R.drawable.outline_call_24),
-                                            contentDescription = null,
-                                            colorFilter = ColorFilter.tint(if (livekitShouldConnect && !token.isNullOrEmpty()) successColor else colorPrimary),
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        if (listUserSpeaking.isNotEmpty()) {
-                                            Text(
-                                                text = "Speaking: " + listUserSpeaking.joinToString(", "),
-                                                color = successColor,
-                                                fontSize = 10.sp,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                        } else {
-                                            Text(
-                                                text = "Speaking: -",
-                                                color = successColor,
-                                                fontSize = 10.sp,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                        }
-                                    }
-                                }
-                            } else {
-                                if (isStreaming) {
-                                    SwipeToStopButton(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(40.dp),
-                                        text = "Geser untuk akhiri stream",
-                                        onConfirmed = { showStopConfirmDialog = true },
-                                    )
-                                } else {
-                                    Button(
-                                        onClick = onStreamClick,
-                                        enabled = hasPermissions,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(40.dp),
-                                        shape = RoundedCornerShape(2.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = colorPrimary,
-                                            disabledContainerColor = Color.Gray,
-                                        ),
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        ) {
-                                            Image(
-                                                painter = painterResource(id = R.drawable.outline_smart_display_24),
-                                                contentDescription = null,
-                                                colorFilter = ColorFilter.tint(backgroundColor),
-                                            )
-                                            Text(
-                                                text = "Start Stream",
-                                                color = backgroundColor,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold,
-                                            )
-                                        }
-                                    }
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Box(
-                                    Modifier
-                                        .clickable {
-                                            showStopStreamDialog = true
-                                        }
-                                        .border(
-                                            width = 1.dp,
-                                            color = colorPrimary,
-                                            shape = RoundedCornerShape(size = 2.dp),
-                                        )
-                                        .width(44.dp)
-                                        .height(40.dp)
-                                        .padding(
-                                            start = 12.dp,
-                                            top = 4.dp,
-                                            end = 12.dp,
-                                            bottom = 4.dp
-                                        ),
+                            // 1. Call
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0x66041F44))
+                                    .clickable { showStopStreamDialog = true },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Image(
+                                    painter = painterResource(
+                                        id = if (livekitConnected) R.drawable.outline_phone_in_talk_24 else R.drawable.outline_call_24,
+                                    ),
+                                    contentDescription = "Call",
+                                    modifier = Modifier.size(22.dp),
+                                    colorFilter = ColorFilter.tint(if (livekitConnected) successColor else Color.White),
+                                )
+                            }
+
+                            // 2. Flip kamera
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0x66041F44))
+                                    .clickable { onSwitchCamera() },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.outline_flip_camera_ios_24),
+                                    contentDescription = "Switch camera",
+                                    modifier = Modifier.size(22.dp),
+                                    colorFilter = ColorFilter.tint(Color.White),
+                                )
+                            }
+
+                            // 3. Start / Stop Stream (pill: ikon di atas + teks)
+                            Button(
+                                onClick = {
+                                    if (isStreaming) showStopConfirmDialog = true else onStreamClick()
+                                },
+                                enabled = hasPermissions,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(58.dp),
+                                shape = RoundedCornerShape(29.dp),
+                                contentPadding = PaddingValues(vertical = 6.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isStreaming) dangerColor else colorPrimary,
+                                    disabledContainerColor = Color.Gray,
+                                ),
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
                                 ) {
                                     Image(
-                                        modifier = Modifier.align(Alignment.Center),
-                                        painter = painterResource(id = R.drawable.outline_call_24),
+                                        painter = painterResource(
+                                            id = if (isStreaming) R.drawable.outline_stop_circle_24 else R.drawable.outline_smart_display_24,
+                                        ),
                                         contentDescription = null,
-                                        colorFilter = ColorFilter.tint(colorPrimary),
+                                        colorFilter = ColorFilter.tint(if (isStreaming) Color.White else backgroundColor),
+                                    )
+                                    Text(
+                                        text = if (isStreaming) "Stop Stream" else "Start Stream",
+                                        color = if (isStreaming) Color.White else backgroundColor,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
                                     )
                                 }
                             }
 
-                            Spacer(modifier = Modifier.width(8.dp))
-
+                            // 4. Record (dummy / placeholder - belum berfungsi)
                             Box(
-                                Modifier
-                                    .clickable {
-                                        onSwitchCamera()
-                                    }
-                                    .border(
-                                        width = 1.dp,
-                                        color = colorPrimary,
-                                        shape = RoundedCornerShape(size = 2.dp),
-                                    )
-                                    .width(44.dp)
-                                    .height(40.dp)
-                                    .padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 4.dp),
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .border(2.dp, Color.White, CircleShape),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .clip(CircleShape)
+                                        .background(dangerColor),
+                                )
+                            }
+
+                            // 5. Kamera (dummy / placeholder - belum berfungsi)
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFEAF6F9)),
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Image(
-                                    modifier = Modifier.align(Alignment.Center),
-                                    painter = painterResource(id = R.drawable.outline_flip_camera_ios_24),
-                                    contentDescription = null,
-                                    colorFilter = ColorFilter.tint(colorPrimary),
+                                    painter = painterResource(id = R.drawable.outline_photo_camera_24),
+                                    contentDescription = "Camera",
+                                    modifier = Modifier.size(24.dp),
+                                    colorFilter = ColorFilter.tint(backgroundColor),
                                 )
                             }
                         }
