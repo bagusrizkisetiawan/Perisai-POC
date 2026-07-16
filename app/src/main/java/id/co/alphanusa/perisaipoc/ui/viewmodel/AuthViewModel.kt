@@ -95,7 +95,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             _authState.value = _authState.value.copy(isLoading = true, error = null)
 
             try {
-                withTimeout(5_000L) { // timeout 10 detik
+                withTimeout(5_000L) { // timeout 5 detik
                     authRepository.refreshToken().fold(
                         onSuccess = { newAccessToken ->
                             _authState.value = AuthState(
@@ -106,20 +106,35 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                             apiConfig.setCurrentAccessToken(newAccessToken)
                         },
                         onFailure = { exception ->
+                            // Jangan langsung logout: tampilkan error + biarkan user Reconnect
                             Log.e(TAG, "Token refresh failed: ${exception.message}")
-                            authRepository.logout()
                             apiConfig.setCurrentAccessToken(null)
-                            _authState.value = AuthState(isLoading = false)
+                            _authState.value = AuthState(
+                                isLoggedIn = false,
+                                isLoading = false,
+                                error = exception.message ?: "Gagal menyambung ke server.",
+                                isConnectionError = true,
+                            )
                         },
                     )
                 }
             } catch (e: TimeoutCancellationException) {
+                // Timeout 5 detik: JANGAN logout, tetap simpan sesi & minta user Reconnect
                 Log.e(TAG, "refreshToken timed out")
-                authRepository.logout()
-                _authState.value = AuthState(isLoading = false)
+                _authState.value = AuthState(
+                    isLoggedIn = false,
+                    isLoading = false,
+                    error = "Server tidak merespons (timeout 5 detik). Periksa koneksi lalu coba Reconnect.",
+                    isConnectionError = true,
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "refreshToken unexpected error: ${e.message}")
-                _authState.value = AuthState(isLoading = false)
+                _authState.value = AuthState(
+                    isLoggedIn = false,
+                    isLoading = false,
+                    error = e.message ?: "Terjadi kesalahan jaringan. Coba Reconnect.",
+                    isConnectionError = true,
+                )
             }
         }
     }

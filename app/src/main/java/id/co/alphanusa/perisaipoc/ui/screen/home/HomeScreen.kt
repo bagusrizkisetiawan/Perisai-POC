@@ -9,9 +9,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -57,11 +61,16 @@ import id.co.alphanusa.perisaipoc.data.remote.api.ApiConfig
 import id.co.alphanusa.perisaipoc.ui.components.QRCodeScannerDialog
 import id.co.alphanusa.perisaipoc.ui.components.backgroundColor
 import id.co.alphanusa.perisaipoc.ui.components.colorPrimary
+import id.co.alphanusa.perisaipoc.ui.components.dangerColor
 import id.co.alphanusa.perisaipoc.ui.viewmodel.AuthViewModel
 
 @Composable
 fun HomeScreen(authViewModel: AuthViewModel = viewModel(), onNavigateToSettings: () -> Unit) {
     val authState by authViewModel.authState.collectAsState()
+
+    // Sesi masih ada bila sudah login ATAU refresh gagal/timeout (refresh token masih tersimpan).
+    // Dalam kondisi ini tombol bawah = Logout, bukan Scan QR.
+    val sessionActive = authState.isLoggedIn || authState.isConnectionError
 
     var showQRScanner by remember { mutableStateOf(false) }
     var scannedResult by remember { mutableStateOf("") }
@@ -86,7 +95,11 @@ fun HomeScreen(authViewModel: AuthViewModel = viewModel(), onNavigateToSettings:
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 context.startActivity(intent)
             } else {
-                Toast.makeText(context, "Izin Kamera, Mic, & Lokasi wajib diberikan!", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    context,
+                    "Izin Kamera, Mic, & Lokasi wajib diberikan!",
+                    Toast.LENGTH_LONG,
+                ).show()
             }
         },
     )
@@ -218,37 +231,11 @@ fun HomeScreen(authViewModel: AuthViewModel = viewModel(), onNavigateToSettings:
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.padding(top = 52.dp),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .border(
-                                width = 1.dp,
-                                color = colorPrimary,
-                                shape = RoundedCornerShape(size = 100.dp),
-                            )
-                            .width(60.dp)
-                            .height(60.dp)
-                            .padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.outline_lock_person_24),
-                            contentDescription = null,
-                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(colorPrimary),
-                            modifier = Modifier.size(52.dp),
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "PoC Stream App",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colorPrimary,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Scan QR Code to connect PERISAI",
-                        fontSize = 10.sp,
-                        color = Color(0xFFE6FBFF),
+                    Image(
+                        painter = painterResource(id = R.drawable.logo_app_home),
+                        contentDescription = null,
+                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(colorPrimary),
+                        modifier = Modifier.size(120.dp),
                     )
                 }
 
@@ -256,85 +243,152 @@ fun HomeScreen(authViewModel: AuthViewModel = viewModel(), onNavigateToSettings:
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    // Scan QR / Logout
-                    Button(
-                        onClick = {
-                            if (authState.isLoggedIn) {
-                                authViewModel.logout()
-                            } else {
-                                showQRScanner = true
+                    // ── Muncul saat refresh token gagal/timeout (sesi masih tersimpan) ──
+                    if (authState.isConnectionError) {
+                        authState.error?.let { errorMsg ->
+                            Box(
+                                modifier = Modifier
+                                    .height(IntrinsicSize.Min)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(Color.Black.copy(alpha = 0.5f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                // Accent line kiri
+                                Box(
+                                    modifier = Modifier
+                                        .width(4.dp)
+                                        .fillMaxHeight()
+                                        .background(dangerColor)
+                                        .align(Alignment.CenterStart),
+                                )
+
+                                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = "Authentication Failed",
+                                        fontSize = 14.sp,
+                                        color = dangerColor,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                    Text(
+                                        text = errorMsg,
+                                        fontSize = 10.sp,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+
+                                // Accent line kanan
+                                Box(
+                                    modifier = Modifier
+                                        .width(4.dp)
+                                        .fillMaxHeight()
+                                        .background(dangerColor)
+                                        .align(Alignment.CenterEnd),
+                                )
                             }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(2.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = when {
-                                authState.isLoggedIn -> Color(0xFFB71C1C)
-                                authState.isLoading -> Color(0xFFFFA000)
-                                else -> colorPrimary
-                            },
-                            disabledContainerColor = Color(0xFF37474F),
-                        ),
-                    ) {
-                        if (authState.isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
+                            Spacer(modifier = Modifier.height(38.dp))
+                        }
+
+                        Button(
+                            onClick = { authViewModel.refreshToken() },
+                            enabled = !authState.isLoading,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(38.dp),
+                            shape = RoundedCornerShape(4.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = colorPrimary,
+                                contentColor = backgroundColor,
+                            ),
+                        ) {
+                            if (authState.isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    color = backgroundColor,
+                                    strokeWidth = 2.dp,
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.outline_refresh_24),
+                                    contentDescription = "Reconnect",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = backgroundColor,
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Reconnect",
+                                fontSize = 12.sp,
                                 color = backgroundColor,
-                                strokeWidth = 2.dp,
-                            )
-                        } else {
-                            Icon(
-                                when {
-                                    authState.isLoggedIn -> Icons.Default.Logout
-                                    else -> Icons.Default.QrCodeScanner
-                                },
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp),
-                                tint = backgroundColor,
                             )
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            when {
-                                authState.isLoggedIn -> "Logout"
-                                authState.isLoading -> "Authenticating..."
-                                else -> "Scan QR Code"
-                            },
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = backgroundColor,
-                        )
+                    }
+                    if (sessionActive) {
+                        // Logout sebagai Row teks clickable (bukan tombol berisi)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { authViewModel.logout() }
+                                .padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Default.Logout,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = dangerColor,
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Logout from PERISAI",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = dangerColor,
+                            )
+                        }
+                    } else {
+                        // Scan QR sebagai tombol berisi (menangani state loading)
+                        Button(
+                            onClick = { showQRScanner = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(2.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (authState.isLoading) Color(0xFFFFA000) else colorPrimary,
+                                disabledContainerColor = Color(0xFF37474F),
+                            ),
+                        ) {
+                            if (authState.isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = backgroundColor,
+                                    strokeWidth = 2.dp,
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.QrCodeScanner,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = backgroundColor,
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (authState.isLoading) "Authenticating..." else "Scan QR Code",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = backgroundColor,
+                            )
+                        }
                     }
                 }
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-//                    Row(
-//                        verticalAlignment = Alignment.CenterVertically,
-//                        modifier = Modifier.clickable(
-//                            onClick = { onNavigateToSettings() }
-//                        )
-//                    ) {
-//                        Icon(
-//                            Icons.Default.Settings,
-//                            contentDescription = null,
-//                            tint = colorPrimary,
-//                            modifier = Modifier.size(12.dp)
-//                        )
-//                        Spacer(modifier = Modifier.width(8.dp))
-//                        Text("URL Configuration", fontSize = 10.sp, color = colorPrimary)
-//
-//                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Open Device Management > PoC Radio on PERISAI web app to generate QR Code for each PoC devices",
-                        color = Color(0x80E6FBFF),
-                        fontSize = 10.sp,
-                        textAlign = TextAlign.Center,
-                    )
                 }
             }
         }
