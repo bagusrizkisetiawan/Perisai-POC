@@ -18,6 +18,9 @@ object Constants {
     /** Lama tanpa sentuhan sebelum peta kembali mengikuti lokasi perangkat. */
     const val MAP_RECENTER_IDLE_MS = 4_000L
 
+    /** Lama layar splash ditampilkan. */
+    const val SPLASH_DURATION_MS = 2_000L
+
     /** Jeda polling persentase baterai. */
     const val BATTERY_POLL_INTERVAL_MS = 2_000L
 
@@ -65,7 +68,7 @@ object Constants {
         const val DEFAULT_LATITUDE = -6.9828
         const val DEFAULT_LONGITUDE = 110.4091
         const val DEFAULT_ZOOM = 19.0
-        const val BOUNDS_DEBOUNCE_MS = 500
+        const val BOUNDS_DEBOUNCE_MS = 500L
         const val FETCH_DEBOUNCE_MS = 400L
     }
 }

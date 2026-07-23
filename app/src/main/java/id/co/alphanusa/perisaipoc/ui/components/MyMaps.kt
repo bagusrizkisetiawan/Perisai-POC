@@ -49,7 +49,7 @@ fun OsmdroidMapView(
     deviceLocation: GeoPoint? = null,
     deviceMarkerTitle: String = "Lokasi Saya",
     deviceMarkerIcon: Int? = null,
-    initialZoom: Double = 19.0,
+    initialZoom: Double = Constants.Map.DEFAULT_ZOOM,
     pocYaw: Float? = null,
     followDevice: Boolean = true,
 ) {
@@ -102,7 +102,7 @@ fun OsmdroidMapView(
     }
 
     var mapViewRef by remember { mutableStateOf<MapView?>(null) }
-    val initialCenter = remember { GeoPoint(-6.9828, 110.4091) }
+    val initialCenter = remember { GeoPoint(Constants.Map.DEFAULT_LATITUDE, Constants.Map.DEFAULT_LONGITUDE) }
 
     // Auto-follow: peta mengikuti lokasi device (device selalu di tengah).
     // Saat user menggeser/zoom manual -> follow dimatikan sementara; setelah idle
@@ -166,7 +166,7 @@ fun OsmdroidMapView(
                                         return false
                                     }
                                 },
-                                500,
+                                Constants.Map.BOUNDS_DEBOUNCE_MS,
                             ),
                         )
                         post { bounds = boundingBox }

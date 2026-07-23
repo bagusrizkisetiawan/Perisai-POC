@@ -63,7 +63,7 @@ import io.livekit.android.events.collect
 import io.livekit.android.room.track.Track
 
 @Composable
-fun DialogCall(
+fun CallDialog(
     onDismiss: () -> Unit,
     audioTracks: List<TrackReference>,
     isMuted: Boolean,

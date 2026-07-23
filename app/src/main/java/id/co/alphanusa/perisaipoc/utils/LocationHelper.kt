@@ -90,68 +90,6 @@ class HuaweiLocationHelper(context: Context) : ILocationHelper {
     }
 }
 
-class GoogleLocationHelper(context: Context) : ILocationHelper {
-
-    private val client =
-        com.google.android.gms.location.LocationServices
-            .getFusedLocationProviderClient(context)
-
-    private var callback: com.google.android.gms.location.LocationCallback? = null
-
-    @SuppressLint("MissingPermission")
-    override fun getLastLocation(onResult: (Location?) -> Unit) {
-        client.lastLocation.addOnSuccessListener { location ->
-            if (location != null) {
-                onResult(location)
-            } else {
-                requestSingleUpdate(onResult)
-            }
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    override fun startLocationUpdates(onLocation: (Location) -> Unit) {
-        callback?.let { client.removeLocationUpdates(it) }
-
-        val request = com.google.android.gms.location.LocationRequest.Builder(
-            com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
-            2000L,
-        ).setMinUpdateIntervalMillis(1000L).build()
-
-        callback = object : com.google.android.gms.location.LocationCallback() {
-            override fun onLocationResult(result: com.google.android.gms.location.LocationResult) {
-                result.lastLocation?.let { onLocation(it) }
-            }
-        }
-
-        client.requestLocationUpdates(request, callback!!, Looper.getMainLooper())
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun requestSingleUpdate(onResult: (Location?) -> Unit) {
-        val request = com.google.android.gms.location.LocationRequest.Builder(
-            com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
-            3000L,
-        ).setMinUpdateIntervalMillis(2000L)
-            .setMaxUpdates(1)
-            .build()
-
-        callback = object : com.google.android.gms.location.LocationCallback() {
-            override fun onLocationResult(result: com.google.android.gms.location.LocationResult) {
-                onResult(result.lastLocation)
-                stopLocationUpdates()
-            }
-        }
-
-        client.requestLocationUpdates(request, callback!!, Looper.getMainLooper())
-    }
-
-    override fun stopLocationUpdates() {
-        callback?.let { client.removeLocationUpdates(it) }
-        callback = null
-    }
-}
-
 class NativeLocationHelper(context: Context) : ILocationHelper {
 
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager

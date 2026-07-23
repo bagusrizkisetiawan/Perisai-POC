@@ -23,13 +23,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import id.co.alphanusa.perisaipoc.R
+import id.co.alphanusa.perisaipoc.core.util.Constants
 import id.co.alphanusa.perisaipoc.ui.components.backgroundColor
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(onFinished: () -> Unit) {
     LaunchedEffect(Unit) {
-        delay(2000)
+        delay(Constants.SPLASH_DURATION_MS)
         onFinished()
     }
     SplashContent()

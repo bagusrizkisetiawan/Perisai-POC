@@ -36,11 +36,12 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.chrisbanes.haze.HazeState
 import id.co.alphanusa.perisaipoc.R
+import id.co.alphanusa.perisaipoc.core.util.Constants
 import id.co.alphanusa.perisaipoc.realtime.CentrifugoConnectionState
 import id.co.alphanusa.perisaipoc.stream.CameraStreamController
 import id.co.alphanusa.perisaipoc.ui.components.AlertStream
+import id.co.alphanusa.perisaipoc.ui.components.CallDialog
 import id.co.alphanusa.perisaipoc.ui.components.ConnectionStatusBar
-import id.co.alphanusa.perisaipoc.ui.components.DialogCall
 import id.co.alphanusa.perisaipoc.ui.components.OsmdroidMapView
 import id.co.alphanusa.perisaipoc.ui.components.RCCameraPreview
 import id.co.alphanusa.perisaipoc.ui.components.RCHoldToStopOverlay
@@ -86,7 +87,7 @@ fun OperationScreen(
     val context = LocalContext.current
 
     val hazeState = remember { HazeState() }
-    var showStopStreamDialog by remember { mutableStateOf(false) }
+    var showCallPanel by remember { mutableStateOf(false) }
 
     // Start: tap langsung mulai (resolusi tetap 720p). Stop: tekan-tahan 3 detik.
     val holdProgress = remember { Animatable(0f) }
@@ -170,8 +171,8 @@ fun OperationScreen(
                             .fillMaxHeight()
                             .fillMaxWidth(),
                         deviceLocation = GeoPoint(
-                            location?.latitude ?: -6.9828,
-                            location?.longitude ?: 110.4091,
+                            location?.latitude ?: Constants.Map.DEFAULT_LATITUDE,
+                            location?.longitude ?: Constants.Map.DEFAULT_LONGITUDE,
                         ),
                         deviceMarkerIcon = R.drawable.ic_map,
                         pocYaw = yaw,
@@ -205,7 +206,7 @@ fun OperationScreen(
                     hazeState = hazeState,
                     holdProgress = holdProgress,
                     onHoldingChange = { isHoldingStop = it },
-                    onOpenCallPanel = { showStopStreamDialog = true },
+                    onOpenCallPanel = { showCallPanel = true },
                     onSwitchCamera = onSwitchCamera,
                     onStartStream = onStartStream,
                     onStopStream = onStopStream,
@@ -289,9 +290,9 @@ fun OperationScreen(
                     }
                 }
                 // Dialog hanya terima data, tidak kelola koneksi
-                if (showStopStreamDialog) {
-                    DialogCall(
-                        onDismiss = { showStopStreamDialog = false },
+                if (showCallPanel) {
+                    CallDialog(
+                        onDismiss = { showCallPanel = false },
                         audioTracks = audioTracks,
                         isMuted = livekitIsMuted,
                         isSpeakerMuted = livekitIsSpeakerMuted,
@@ -307,9 +308,9 @@ fun OperationScreen(
             }
         }
 
-        if (showStopStreamDialog && !livekitShouldConnect) {
-            DialogCall(
-                onDismiss = { showStopStreamDialog = false },
+        if (showCallPanel && !livekitShouldConnect) {
+            CallDialog(
+                onDismiss = { showCallPanel = false },
                 audioTracks = emptyList(),
                 isMuted = livekitIsMuted,
                 isSpeakerMuted = livekitIsSpeakerMuted, // ← fix: tambah yang hilang

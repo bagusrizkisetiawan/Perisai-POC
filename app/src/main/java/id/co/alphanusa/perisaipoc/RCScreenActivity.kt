@@ -36,6 +36,7 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import id.co.alphanusa.perisaipoc.core.common.AppResult
 import id.co.alphanusa.perisaipoc.core.media.MediaStoreSaver
+import id.co.alphanusa.perisaipoc.core.util.Constants
 import id.co.alphanusa.perisaipoc.domain.model.BatteryInfo
 import id.co.alphanusa.perisaipoc.domain.model.BatteryStatus
 import id.co.alphanusa.perisaipoc.domain.model.GpsSignalLevel
@@ -156,7 +157,7 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
             LaunchedEffect(Unit) {
                 while (true) {
                     batteryLevel = getBatteryPercentage()
-                    kotlinx.coroutines.delay(2000)
+                    delay(Constants.BATTERY_POLL_INTERVAL_MS)
                 }
             }
 
