@@ -17,12 +17,14 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import dagger.hilt.android.AndroidEntryPoint
 import id.co.alphanusa.perisaipoc.data.local.AppSettingsManager
 import id.co.alphanusa.perisaipoc.ui.screen.home.HomeScreen
 import id.co.alphanusa.perisaipoc.ui.screen.setting.SettingsScreen
 import id.co.alphanusa.perisaipoc.ui.screen.splash.SplashScreen
 import id.co.alphanusa.perisaipoc.ui.theme.POCHuaweiStreamTheme
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()

@@ -72,6 +72,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dagger.hilt.android.AndroidEntryPoint
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.materials.HazeMaterials
@@ -116,6 +117,7 @@ import org.osmdroid.config.Configuration
 import org.osmdroid.util.GeoPoint
 import java.io.File
 
+@AndroidEntryPoint
 class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
 
     // =========================================================================
