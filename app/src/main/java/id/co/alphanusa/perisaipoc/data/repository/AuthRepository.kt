@@ -54,7 +54,7 @@ class AuthRepository(
             }
         } catch (e: IOException) {
             Log.e(TAG, "Network error during login", e)
-            Result.failure(Exception("Network error. Please check your connection."))
+            Result.failure(Exception("Check your connection or make sure server is online."))
         } catch (e: Exception) {
             Log.e(TAG, "Unexpected error during login", e)
             Result.failure(Exception("An unexpected error occurred"))
@@ -100,7 +100,7 @@ class AuthRepository(
             }
         } catch (e: IOException) {
             Log.e(TAG, "Network error during token refresh", e)
-            Result.failure(Exception("Network error. Please check your connection."))
+            Result.failure(Exception("Check your connection or make sure server is online."))
         } catch (e: Exception) {
             Log.e(TAG, "Unexpected error during token refresh", e)
             Result.failure(Exception("An unexpected error occurred"))

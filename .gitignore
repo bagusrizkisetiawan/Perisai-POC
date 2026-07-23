@@ -14,3 +14,5 @@
 .cxx
 local.properties
 secrets.properties
+# Dokumentasi lokal (tidak ikut commit)
+/dokumentasi/

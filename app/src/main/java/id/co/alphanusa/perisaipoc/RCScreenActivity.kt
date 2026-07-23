@@ -15,23 +15,23 @@ import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.util.Log
-import android.view.SurfaceHolder
-import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,8 +42,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -55,33 +53,29 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pedro.common.ConnectChecker
-import com.pedro.encoder.input.video.CameraHelper
-import com.pedro.encoder.utils.gl.AspectRatioMode
-import com.pedro.library.rtmp.RtmpCamera2
-import com.pedro.library.view.OpenGlView
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.materials.HazeMaterials
+import id.co.alphanusa.perisaipoc.core.media.MediaStoreSaver
 import id.co.alphanusa.perisaipoc.data.local.AppSettingsManager
 import id.co.alphanusa.perisaipoc.data.remote.api.ApiConfig
 import id.co.alphanusa.perisaipoc.data.remote.api.ApiService
@@ -90,11 +84,13 @@ import id.co.alphanusa.perisaipoc.domain.model.PocData
 import id.co.alphanusa.perisaipoc.domain.model.getBatteryStatus
 import id.co.alphanusa.perisaipoc.realtime.CentrifugoClientManager
 import id.co.alphanusa.perisaipoc.realtime.CentrifugoConnectionState
+import id.co.alphanusa.perisaipoc.stream.CameraStreamController
 import id.co.alphanusa.perisaipoc.ui.components.AlertStream
 import id.co.alphanusa.perisaipoc.ui.components.ConnectionStatusBar
 import id.co.alphanusa.perisaipoc.ui.components.DialogCall
-import id.co.alphanusa.perisaipoc.ui.components.DialogResolution
 import id.co.alphanusa.perisaipoc.ui.components.OsmdroidMapView
+import id.co.alphanusa.perisaipoc.ui.components.RCCameraPreview
+import id.co.alphanusa.perisaipoc.ui.components.RCHoldToStopOverlay
 import id.co.alphanusa.perisaipoc.ui.components.backgroundColor
 import id.co.alphanusa.perisaipoc.ui.components.colorPrimary
 import id.co.alphanusa.perisaipoc.ui.components.dangerColor
@@ -118,8 +114,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.osmdroid.config.Configuration
 import org.osmdroid.util.GeoPoint
+import java.io.File
 
-class RCScreenActivity : ComponentActivity(), ConnectChecker {
+class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
 
     // =========================================================================
     // 1. PROPERTIES & STATE VARIABLES
@@ -133,10 +130,15 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
         authManager.apiService
     }
 
-    // Camera & Stream Variables
-    private var rtmpCamera: RtmpCamera2? = null
+    // Camera & Stream (CameraX + RootEncoder RtmpStream)
+    private val mediaStoreSaver by lazy { MediaStoreSaver(this) }
+    private val cameraController: CameraStreamController by lazy {
+        CameraStreamController(this, this)
+    }
     private var rtmpUrl: String? = null
+    private var recordFilePath: String? = null
     private var isStreaming by mutableStateOf(false)
+    private var isRecording by mutableStateOf(false)
     var isFrontCamera by mutableStateOf(false)
 
     // Device States (Location, Permissions, Sensors)
@@ -290,7 +292,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                     isStreaming = isStreaming,
                     hasPermissions = hasPermissions,
                     isFrontCamera = isFrontCamera,
-                    onStartStream = { w, h, br -> startRtmpStream(w, h, br) },
+                    onStartStream = { startRtmpStream() },
                     onStopStream = { stopRtmpStream() },
                     onSwitchCamera = { switchCamera() },
                     livekitApiService = livekitApiService,
@@ -362,8 +364,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
         super.onDestroy()
         window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        if (isStreaming) rtmpCamera?.stopStream()
-        rtmpCamera?.stopPreview()
+        cameraController.release()
         locationHelper.stopLocationUpdates()
     }
 
@@ -399,7 +400,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
         }
     }
 
-    private fun startRtmpStream(width: Int, height: Int, bitrate: Int) {
+    private fun startRtmpStream() {
         if (isStreaming) return
 
         val urlToStream = rtmpUrl
@@ -409,18 +410,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
             return
         }
 
-        val rotation = CameraHelper.getCameraOrientation(this)
-        val prepared = rtmpCamera?.prepareVideo(
-            width,
-            height,
-            30, // fps
-            bitrate,
-            2, // iFrameInterval (detik)
-            rotation,
-        ) == true
-
-        if (prepared) {
-            rtmpCamera?.startStream(urlToStream)
+        if (cameraController.startStream(urlToStream)) {
             isStreaming = true
         } else {
             Toast.makeText(this, "Gagal menyiapkan video", Toast.LENGTH_SHORT).show()
@@ -429,9 +419,48 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
 
     private fun stopRtmpStream() {
         if (!isStreaming) return
-        rtmpCamera?.stopStream()
+        cameraController.stopStream()
         isStreaming = false
         Toast.makeText(this, "RTMP Stream Dihentikan", Toast.LENGTH_SHORT).show()
+    }
+
+    // ── Record video ke galeri ──────────────────────────────────────────────
+    private fun startRecording() {
+        if (isRecording) return
+        val file = mediaStoreSaver.newRecordingFile()
+        if (cameraController.startRecord(file.absolutePath)) {
+            recordFilePath = file.absolutePath
+            isRecording = true
+            Toast.makeText(this, "Mulai merekam...", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Gagal memulai rekaman", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun stopRecording() {
+        if (!isRecording) return
+        cameraController.stopRecord()
+        isRecording = false
+        val path = recordFilePath ?: return
+        lifecycleScope.launch {
+            mediaStoreSaver.saveVideoToGallery(File(path))
+                .onSuccess { showToastOnMain("Video tersimpan (${MediaStoreSaver.VIDEO_ALBUM})") }
+                .onFailure { showToastOnMain("Gagal menyimpan video: ${it.message}") }
+        }
+    }
+
+    // ── Ambil foto ke galeri ────────────────────────────────────────────────
+    private fun takePhoto() {
+        val started = cameraController.takePhoto { bitmap ->
+            lifecycleScope.launch {
+                mediaStoreSaver.savePhotoToGallery(bitmap)
+                    .onSuccess { showToastOnMain("Foto tersimpan (${MediaStoreSaver.PHOTO_ALBUM})") }
+                    .onFailure { showToastOnMain("Gagal menyimpan foto: ${it.message}") }
+            }
+        }
+        if (!started) {
+            Toast.makeText(this, "Kamera belum siap", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun sendToCentrifugo() {
@@ -484,8 +513,8 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
     }
 
     private fun switchCamera() {
-        rtmpCamera?.switchCamera()
-        isFrontCamera = !isFrontCamera
+        cameraController.switchCamera()
+        isFrontCamera = cameraController.isFrontCamera
     }
 
     private fun isHuaweiDevice(): Boolean {
@@ -508,7 +537,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
     // 6. CONNECT CHECKER INTERFACE IMPLEMENTATION
     // =========================================================================
 
-    override fun onConnectionStarted(url: String) = runOnUiThread {
+    override fun onConnectionStarted() = runOnUiThread {
         Toast.makeText(this, "Memulai koneksi...", Toast.LENGTH_SHORT).show()
     }
 
@@ -518,13 +547,10 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
 
     override fun onConnectionFailed(reason: String) = runOnUiThread {
         Toast.makeText(this, "Gagal terhubung: $reason", Toast.LENGTH_LONG).show()
-        rtmpCamera?.stopStream()
         isStreaming = false
     }
 
-    override fun onNewBitrate(bitrate: Long) {}
-
-    override fun onDisconnect() = runOnUiThread {
+    override fun onDisconnected() = runOnUiThread {
         Toast.makeText(this, "Terputus dari Server RTMP", Toast.LENGTH_SHORT).show()
         isStreaming = false
     }
@@ -549,7 +575,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
         isStreaming: Boolean,
         hasPermissions: Boolean,
         isFrontCamera: Boolean,
-        onStartStream: (width: Int, height: Int, bitrate: Int) -> Unit,
+        onStartStream: () -> Unit,
         onStopStream: () -> Unit,
         onSwitchCamera: () -> Unit,
         livekitApiService: ApiService,
@@ -566,14 +592,11 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
 
         val hazeState = remember { HazeState() }
         var showStopStreamDialog by remember { mutableStateOf(false) }
-        var showResolutionDialog by remember { mutableStateOf(false) }
-        var showStopConfirmDialog by remember { mutableStateOf(false) }
 
-        // Saat sedang stream: tombol diganti "geser untuk akhiri" + dialog konfirmasi.
-        // Saat belum stream: klik -> munculkan dialog pilih resolusi dulu.
-        val onStreamClick = {
-            if (!isStreaming) showResolutionDialog = true
-        }
+        // Start: tap langsung mulai (resolusi tetap 720p). Stop: tekan-tahan 3 detik.
+        val holdProgress = remember { Animatable(0f) }
+        var isHoldingStop by remember { mutableStateOf(false) }
+        val holdScope = rememberCoroutineScope()
 
         var swipMapToCam by remember { mutableStateOf(false) }
 
@@ -626,63 +649,13 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                             Modifier.fillMaxSize()
                         },
                     ) {
-                        if (hasPermissions) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(RoundedCornerShape(4.dp)),
-                            ) {
-                                AndroidView(
-                                    factory = { context ->
-                                        OpenGlView(context).apply {
-                                            layoutParams = ViewGroup.LayoutParams(
-                                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                            )
-                                        }.also { glView ->
-                                            rtmpCamera = RtmpCamera2(glView, this@RCScreenActivity)
-                                            glView.setAspectRatioMode(AspectRatioMode.Fill)
-
-                                            // Surface SurfaceView dihancurkan setiap kali aplikasi
-                                            // masuk background, dan dibuat ulang saat kembali ke depan.
-                                            // Callback ini memastikan preview kamera otomatis hidup
-                                            // lagi tanpa perlu kill aplikasi.
-                                            glView.holder.addCallback(object : SurfaceHolder.Callback {
-                                                override fun surfaceCreated(holder: SurfaceHolder) {}
-
-                                                override fun surfaceChanged(
-                                                    holder: SurfaceHolder,
-                                                    format: Int,
-                                                    width: Int,
-                                                    height: Int,
-                                                ) {
-                                                    if (rtmpCamera?.isOnPreview == false) {
-                                                        rtmpCamera?.startPreview()
-                                                    }
-                                                }
-
-                                                override fun surfaceDestroyed(holder: SurfaceHolder) {
-                                                    if (rtmpCamera?.isOnPreview == true) {
-                                                        rtmpCamera?.stopPreview()
-                                                    }
-                                                }
-                                            })
-                                        }
-                                    },
-                                    update = { glView ->
-                                        if (rtmpCamera?.isOnPreview == false) {
-                                            glView.post { rtmpCamera?.startPreview() }
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxSize(),
-                                )
-                            }
-                        } else {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("Menunggu Izin Kamera...", color = Color.White, fontSize = 16.sp)
-                            }
-                        }
+                        RCCameraPreview(
+                            hasPermissions = hasPermissions,
+                            controller = cameraController,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(4.dp)),
+                        )
                         if (swipMapToCam) {
                             Box(
                                 modifier = Modifier
@@ -789,21 +762,51 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                 )
                             }
 
-                            // 3. Start / Stop Stream (pill: ikon di atas + teks)
-                            Button(
-                                onClick = {
-                                    if (isStreaming) showStopConfirmDialog = true else onStreamClick()
-                                },
-                                enabled = hasPermissions,
+                            // 3. Start / Stop Stream — tap untuk mulai, TAHAN 3 detik untuk stop
+                            val streamingLatest by rememberUpdatedState(isStreaming)
+                            val permissionLatest by rememberUpdatedState(hasPermissions)
+                            Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(58.dp),
-                                shape = RoundedCornerShape(29.dp),
-                                contentPadding = PaddingValues(vertical = 6.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isStreaming) dangerColor else colorPrimary,
-                                    disabledContainerColor = Color.Gray,
-                                ),
+                                    .height(58.dp)
+                                    .clip(RoundedCornerShape(29.dp))
+                                    .background(
+                                        when {
+                                            !hasPermissions -> Color.Gray
+                                            isStreaming -> dangerColor
+                                            else -> colorPrimary
+                                        },
+                                    )
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onPress = {
+                                                if (!permissionLatest) return@detectTapGestures
+                                                if (!streamingLatest) {
+                                                    // Belum live → tap biasa untuk mulai.
+                                                    if (tryAwaitRelease()) onStartStream()
+                                                } else {
+                                                    // Sedang live → tahan hingga ring penuh untuk stop.
+                                                    isHoldingStop = true
+                                                    val fillJob = holdScope.launch {
+                                                        holdProgress.snapTo(0f)
+                                                        holdProgress.animateTo(
+                                                            targetValue = 1f,
+                                                            animationSpec = tween(
+                                                                durationMillis = 3000,
+                                                                easing = LinearEasing,
+                                                            ),
+                                                        )
+                                                        onStopStream()
+                                                    }
+                                                    tryAwaitRelease()
+                                                    if (holdProgress.value < 1f) fillJob.cancel()
+                                                    isHoldingStop = false
+                                                    holdScope.launch { holdProgress.snapTo(0f) }
+                                                }
+                                            },
+                                        )
+                                    },
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -817,7 +820,7 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                         colorFilter = ColorFilter.tint(if (isStreaming) Color.White else backgroundColor),
                                     )
                                     Text(
-                                        text = if (isStreaming) "Stop Stream" else "Start Stream",
+                                        text = if (isStreaming) "Tahan untuk Stop" else "Start Stream",
                                         color = if (isStreaming) Color.White else backgroundColor,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
@@ -825,28 +828,32 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                                 }
                             }
 
-                            // 4. Record (dummy / placeholder - belum berfungsi)
+                            // 4. Record video (toggle: tap mulai, tap lagi berhenti & simpan)
                             Box(
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clip(CircleShape)
-                                    .border(2.dp, Color.White, CircleShape),
+                                    .border(2.dp, Color.White, CircleShape)
+                                    .clickable(enabled = hasPermissions) {
+                                        if (isRecording) stopRecording() else startRecording()
+                                    },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(30.dp)
-                                        .clip(CircleShape)
+                                        .size(if (isRecording) 20.dp else 30.dp)
+                                        .clip(RoundedCornerShape(if (isRecording) 4.dp else 15.dp))
                                         .background(dangerColor),
                                 )
                             }
 
-                            // 5. Kamera (dummy / placeholder - belum berfungsi)
+                            // 5. Ambil foto
                             Box(
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFFEAF6F9)),
+                                    .background(Color(0xFFEAF6F9))
+                                    .clickable(enabled = hasPermissions) { takePhoto() },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Image(
@@ -859,6 +866,11 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                         }
                     }
                 }
+            }
+
+            // Overlay ring merah saat menahan tombol Stop
+            if (isHoldingStop) {
+                RCHoldToStopOverlay(progress = holdProgress.value)
             }
 
             val ctx = context ?: return@Box
@@ -960,186 +972,6 @@ class RCScreenActivity : ComponentActivity(), ConnectChecker {
                     onSpeakerToggle = onLivekitSpeakerToggle, // ← fix: tambah yang hilang
                     onEndCall = { },
                     onJoin = { livekitViewModel.fetchLivekitToken() },
-                )
-            }
-
-            // Dialog konfirmasi setelah geser tombol "akhiri stream"
-            if (showStopConfirmDialog) {
-                Dialog(
-                    onDismissRequest = { showStopConfirmDialog = false },
-                    properties = DialogProperties(
-                        dismissOnBackPress = true,
-                        dismissOnClickOutside = true,
-                        usePlatformDefaultWidth = false,
-                    ),
-                ) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth(0.7f),
-                    ) {
-                        Box(
-                            modifier =
-                            Modifier
-                                .border(
-                                    width = 0.5.dp,
-                                    color = colorPrimary,
-                                    shape = RoundedCornerShape(
-                                        topStart = 2.dp,
-                                        topEnd = 2.dp,
-                                        bottomStart = 10.dp,
-                                        bottomEnd = 10.dp,
-                                    ),
-                                )
-                                .fillMaxWidth()
-                                .matchParentSize()
-                                .background(
-                                    color = Color(0x1A02D8FA),
-                                    shape = RoundedCornerShape(
-                                        topStart = 2.dp,
-                                        topEnd = 2.dp,
-                                        bottomStart = 10.dp,
-                                        bottomEnd = 10.dp,
-                                    ),
-                                )
-                                .padding(20.dp),
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(4.dp)
-                                .background(
-                                    color = colorPrimary,
-                                    shape = RoundedCornerShape(
-                                        topStart = 2.dp,
-                                        topEnd = 2.dp,
-                                    ),
-                                ),
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp, vertical = 18.dp)
-                                .align(Alignment.TopCenter),
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Text(
-                                    text = "Stop Stream",
-                                    fontSize = 12.sp,
-                                    color = Color.White,
-                                )
-                                Image(
-                                    modifier = Modifier
-                                        .clickable {
-                                            showStopConfirmDialog = false
-                                        }
-                                        .size(24.dp),
-                                    painter = painterResource(id = R.drawable.outline_close_24),
-                                    contentDescription = null,
-                                    colorFilter = ColorFilter.tint(Color.White),
-                                )
-                            }
-                        }
-
-                        Image(
-                            painter = painterResource(id = R.drawable.border_left),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .size(28.dp),
-                        )
-
-                        Image(
-                            painter = painterResource(id = R.drawable.border_right),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .size(28.dp),
-                        )
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                                .padding(top = 42.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text(
-                                text = "Apakah Anda yakin ingin mengakhiri siaran (stream) ini?",
-                                color = Color.White,
-                                fontSize = 12.sp,
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Button(
-                                    onClick = {
-                                        showStopConfirmDialog = false
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(40.dp),
-                                    shape = RoundedCornerShape(2.dp),
-                                    contentPadding = PaddingValues(0.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = dangerColor,
-                                        disabledContainerColor = Color.Gray,
-                                    ),
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center,
-                                    ) {
-                                        Text(text = "Batal", color = Color.White)
-                                    }
-                                }
-                                Spacer(Modifier.width(12.dp))
-
-                                Button(
-                                    onClick = {
-                                        showStopConfirmDialog = false
-                                        onStopStream()
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(40.dp),
-                                    shape = RoundedCornerShape(2.dp),
-                                    contentPadding = PaddingValues(0.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = colorPrimary,
-                                        disabledContainerColor = Color.Gray,
-                                    ),
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center,
-                                    ) {
-                                        Text(text = "Stop Stream", color = backgroundColor)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Dialog pilih resolusi sebelum mulai stream
-            if (showResolutionDialog) {
-                DialogResolution(
-                    onDismiss = { showResolutionDialog = false },
-                    onSelect = { res ->
-                        showResolutionDialog = false
-                        onStartStream(res.width, res.height, res.bitrate)
-                    },
                 )
             }
         }

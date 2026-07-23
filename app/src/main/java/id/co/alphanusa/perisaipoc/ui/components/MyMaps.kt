@@ -8,6 +8,7 @@ import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.view.MotionEvent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -27,6 +28,7 @@ import id.co.alphanusa.perisaipoc.ui.viewmodel.DrawViewModel
 import id.co.alphanusa.perisaipoc.ui.viewmodel.DrawViewModelFactory
 import id.co.alphanusa.perisaipoc.utils.GoogleSatelliteTile
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -41,6 +43,9 @@ import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Overlay
 import org.osmdroid.views.overlay.Polygon
 import org.osmdroid.views.overlay.Polyline
+
+// Berapa lama (ms) tanpa sentuhan sebelum peta otomatis kembali mengikuti device
+private const val RECENTER_IDLE_MS = 4_000L
 
 @Composable
 fun OsmdroidMapView(
@@ -111,14 +116,28 @@ fun OsmdroidMapView(
     var mapViewRef by remember { mutableStateOf<MapView?>(null) }
     val initialCenter = remember { GeoPoint(-6.9828, 110.4091) }
 
-    LaunchedEffect(deviceLocation, followDevice, mapViewRef) {
-        if (!followDevice) return@LaunchedEffect
+    // Auto-follow: peta mengikuti lokasi device (device selalu di tengah).
+    // Saat user menggeser/zoom manual -> follow dimatikan sementara; setelah idle
+    // (tanpa sentuhan) selama RECENTER_IDLE_MS -> follow menyala lagi & balik ke device.
+    var isFollowing by remember { mutableStateOf(true) }
+    var lastInteractionAt by remember { mutableLongStateOf(0L) }
+
+    // Recenter otomatis ke device saat follow aktif & lokasi berubah
+    LaunchedEffect(deviceLocation, isFollowing, mapViewRef) {
+        if (!followDevice || !isFollowing) return@LaunchedEffect
         val mv = mapViewRef ?: return@LaunchedEffect
         val loc = deviceLocation ?: return@LaunchedEffect
 
         mv.controller.animateTo(loc)
         // update bounds setelah animasi supaya data ke-fetch untuk area baru
         mv.postDelayed({ bounds = mv.boundingBox }, 600)
+    }
+
+    // Setelah user berhenti berinteraksi selama RECENTER_IDLE_MS -> aktifkan follow lagi
+    LaunchedEffect(lastInteractionAt) {
+        if (lastInteractionAt == 0L || !followDevice) return@LaunchedEffect
+        delay(RECENTER_IDLE_MS)
+        isFollowing = true
     }
 
     Card(modifier = modifier, shape = RoundedCornerShape(4.dp)) {
@@ -131,6 +150,20 @@ fun OsmdroidMapView(
 //                        setTileSource(TileSourceFactory.MAPNIK)
                         setMultiTouchControls(true)
                         setBuiltInZoomControls(false)
+                        // Deteksi interaksi user: begitu disentuh/digeser, hentikan follow
+                        // sementara. animateTo() programatik tidak memicu ini (bukan touch).
+                        setOnTouchListener { _, event ->
+                            when (event.actionMasked) {
+                                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_MOVE -> {
+                                    isFollowing = false
+                                    lastInteractionAt = System.currentTimeMillis()
+                                }
+                                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                                    lastInteractionAt = System.currentTimeMillis()
+                                }
+                            }
+                            false
+                        }
                         controller.setZoom(initialZoom)
                         controller.setCenter(deviceLocation ?: initialCenter)
                         addMapListener(
