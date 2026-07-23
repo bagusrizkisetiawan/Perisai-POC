@@ -10,6 +10,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -138,12 +140,22 @@ fun OperationScreen(
                         Modifier.fillMaxSize()
                     },
                 ) {
+                    // Aspek view = aspek konten (4:3 native, portrait 3:4)
+                    // sehingga tidak ada bar hitam maupun stretch.
                     RCCameraPreview(
                         hasPermissions = hasPermissions,
                         controller = cameraController,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(4.dp)),
+                        modifier = if (swipMapToCam) {
+                            Modifier
+                                .matchParentSize()
+                                .clip(RoundedCornerShape(4.dp))
+                        } else {
+                            Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(Constants.Stream.PREVIEW_ASPECT_RATIO)
+                                .align(Alignment.Center)
+                                .clip(RoundedCornerShape(4.dp))
+                        },
                     )
                     if (swipMapToCam) {
                         Box(
@@ -186,8 +198,8 @@ fun OperationScreen(
                     }
                 }
 
-                Column(
-                    verticalArrangement = Arrangement.SpaceBetween,
+                Row(
+                    horizontalArrangement = Arrangement.End,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .fillMaxWidth()

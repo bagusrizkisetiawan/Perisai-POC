@@ -10,6 +10,7 @@ import com.pedro.encoder.utils.gl.AspectRatioMode
 import com.pedro.library.base.recording.RecordController
 import com.pedro.library.rtmp.RtmpStream
 import com.pedro.library.util.sources.audio.MicrophoneSource
+import id.co.alphanusa.perisaipoc.core.util.Constants
 
 /**
  * Membungkus pipeline streaming berbasis [RtmpStream] (arsitektur baru
@@ -29,14 +30,6 @@ class CameraStreamController(
 
     companion object {
         private const val TAG = "CameraStream"
-
-        // Resolusi tetap 720p (16:9) @ 2.5 Mbps — seperti app Body Cam.
-        private const val WIDTH = 1280
-        private const val HEIGHT = 720
-        private const val FPS = 30
-        private const val VIDEO_BITRATE = 2_500_000
-        private const val AUDIO_BITRATE = 128 * 1024
-        private const val SAMPLE_RATE = 44100
     }
 
     /** Callback status koneksi RTMP (diteruskan dari [ConnectChecker]). */
@@ -146,13 +139,24 @@ class CameraStreamController(
     private fun prepareEncoders(): Boolean {
         val rotation = CameraHelper.getCameraOrientation(appContext)
         val video = try {
-            stream.prepareVideo(WIDTH, HEIGHT, VIDEO_BITRATE, FPS, 2, rotation)
+            stream.prepareVideo(
+                Constants.Stream.WIDTH,
+                Constants.Stream.HEIGHT,
+                Constants.Stream.VIDEO_BITRATE,
+                Constants.Stream.FPS,
+                Constants.Stream.I_FRAME_INTERVAL_SEC,
+                rotation,
+            )
         } catch (e: Exception) {
             Log.e(TAG, "prepareVideo gagal", e)
             false
         }
         val audio = try {
-            stream.prepareAudio(AUDIO_BITRATE, true, SAMPLE_RATE)
+            stream.prepareAudio(
+                Constants.Stream.AUDIO_BITRATE,
+                true,
+                Constants.Stream.SAMPLE_RATE,
+            )
         } catch (e: Exception) {
             Log.e(TAG, "prepareAudio gagal", e)
             false

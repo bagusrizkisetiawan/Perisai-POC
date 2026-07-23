@@ -37,13 +37,17 @@ object Constants {
     const val RTMP_USER_PARAM = "drone"
 
     object Stream {
-        const val WIDTH = 1280
-        const val HEIGHT = 720
+        // 4:3 = rasio native sensor kamera -> preview & stream tanpa crop/letterbox.
+        const val WIDTH = 1440
+        const val HEIGHT = 1080
         const val FPS = 30
-        const val VIDEO_BITRATE = 2_500_000
+        const val VIDEO_BITRATE = 4_000_000
         const val AUDIO_BITRATE = 128 * 1024
         const val SAMPLE_RATE = 44_100
         const val I_FRAME_INTERVAL_SEC = 2
+
+        /** Rasio preview pada orientasi portrait (4:3 diputar). */
+        const val PREVIEW_ASPECT_RATIO = 3f / 4f
     }
 
     object Gallery {
