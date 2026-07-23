@@ -60,7 +60,7 @@ import java.io.File
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
+class OperationActivity : ComponentActivity(), CameraStreamController.Listener {
 
     // =========================================================================
     // 1. PROPERTIES & STATE VARIABLES
@@ -468,7 +468,7 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
 
     private suspend fun showToastOnMain(message: String) {
         withContext(Dispatchers.Main) {
-            Toast.makeText(this@RCScreenActivity, message, Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@OperationActivity, message, Toast.LENGTH_SHORT).show()
         }
     }
 

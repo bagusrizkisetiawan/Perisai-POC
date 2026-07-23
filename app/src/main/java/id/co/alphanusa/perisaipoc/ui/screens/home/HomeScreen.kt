@@ -55,7 +55,7 @@ import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.materials.HazeMaterials
 import id.co.alphanusa.perisaipoc.R
-import id.co.alphanusa.perisaipoc.RCScreenActivity
+import id.co.alphanusa.perisaipoc.OperationActivity
 import id.co.alphanusa.perisaipoc.ui.components.QRCodeScannerDialog
 import id.co.alphanusa.perisaipoc.ui.components.backgroundColor
 import id.co.alphanusa.perisaipoc.ui.components.colorPrimary
@@ -87,8 +87,8 @@ fun HomeScreen(authViewModel: AuthViewModel = hiltViewModel(), onNavigateToSetti
             val audio = permissions[Manifest.permission.RECORD_AUDIO] ?: false
 
             if (fineLocation && camera && audio) {
-                // Izin diberikan semua, langsung buka RCScreenActivity
-                val intent = Intent(context, RCScreenActivity::class.java)
+                // Izin diberikan semua, langsung buka OperationActivity
+                val intent = Intent(context, OperationActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 context.startActivity(intent)
             } else {
