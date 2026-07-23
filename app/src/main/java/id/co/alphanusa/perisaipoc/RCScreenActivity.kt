@@ -20,30 +20,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,33 +28,14 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeChild
-import dev.chrisbanes.haze.materials.HazeMaterials
 import id.co.alphanusa.perisaipoc.core.common.AppResult
 import id.co.alphanusa.perisaipoc.core.media.MediaStoreSaver
-import id.co.alphanusa.perisaipoc.core.util.Constants
 import id.co.alphanusa.perisaipoc.domain.model.BatteryInfo
 import id.co.alphanusa.perisaipoc.domain.model.BatteryStatus
 import id.co.alphanusa.perisaipoc.domain.model.GpsSignalLevel
@@ -88,33 +45,16 @@ import id.co.alphanusa.perisaipoc.domain.usecase.BuildStreamUrlUseCase
 import id.co.alphanusa.perisaipoc.realtime.CentrifugoClientManager
 import id.co.alphanusa.perisaipoc.realtime.CentrifugoConnectionState
 import id.co.alphanusa.perisaipoc.stream.CameraStreamController
-import id.co.alphanusa.perisaipoc.ui.components.AlertStream
-import id.co.alphanusa.perisaipoc.ui.components.ConnectionStatusBar
-import id.co.alphanusa.perisaipoc.ui.components.DialogCall
-import id.co.alphanusa.perisaipoc.ui.components.OsmdroidMapView
-import id.co.alphanusa.perisaipoc.ui.components.RCCameraPreview
-import id.co.alphanusa.perisaipoc.ui.components.RCHoldToStopOverlay
-import id.co.alphanusa.perisaipoc.ui.components.backgroundColor
-import id.co.alphanusa.perisaipoc.ui.components.colorPrimary
-import id.co.alphanusa.perisaipoc.ui.components.dangerColor
-import id.co.alphanusa.perisaipoc.ui.components.successColor
+import id.co.alphanusa.perisaipoc.ui.screens.operation.OperationScreen
 import id.co.alphanusa.perisaipoc.ui.theme.POCHuaweiStreamTheme
-import id.co.alphanusa.perisaipoc.ui.viewmodel.LivekitViewModel
-import id.co.alphanusa.perisaipoc.ui.viewmodel.UserViewModel
 import id.co.alphanusa.perisaipoc.utils.HuaweiLocationHelper
 import id.co.alphanusa.perisaipoc.utils.ILocationHelper
 import id.co.alphanusa.perisaipoc.utils.NativeLocationHelper
-import io.livekit.android.compose.local.RoomScope
-import io.livekit.android.compose.state.rememberTracks
-import io.livekit.android.room.participant.RemoteParticipant
-import io.livekit.android.room.track.RemoteAudioTrack
-import io.livekit.android.room.track.Track
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.osmdroid.config.Configuration
-import org.osmdroid.util.GeoPoint
 import java.io.File
 import javax.inject.Inject
 
@@ -282,7 +222,7 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
 
             // 3. TAMPILKAN UI
             POCHuaweiStreamTheme {
-                SimpleCameraScreen(
+                OperationScreen(
                     location = currentLocation,
                     yaw = yaw,
                     connectionState = connectionState,
@@ -311,6 +251,14 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
                     },
                     onLivekitMuteToggle = { livekitIsMuted = !livekitIsMuted },
                     onLivekitSpeakerToggle = { livekitIsSpeakerMuted = !livekitIsSpeakerMuted },
+                    cameraController = cameraController,
+                    isRecording = isRecording,
+                    livekitUrl = settingsRepository.getConfig().livekitUrl,
+                    onToggleRecording = {
+                        if (isRecording) stopRecording() else startRecording()
+                    },
+                    onTakePhoto = { takePhoto() },
+                    onLogout = { returnToHome() },
                 )
             }
         }
@@ -510,6 +458,13 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
     // 5. UTILITY FUNCTIONS
     // =========================================================================
 
+    /** Kembali ke layar utama (dipakai saat logout dari status bar). */
+    private fun returnToHome() {
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+    }
+
     private suspend fun showToastOnMain(message: String) {
         withContext(Dispatchers.Main) {
             Toast.makeText(this@RCScreenActivity, message, Toast.LENGTH_SHORT).show()
@@ -549,407 +504,4 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
     // =========================================================================
     // 7. COMPOSE UI COMPONENTS
     // =========================================================================
-
-    @Composable
-    fun SimpleCameraScreen(
-        location: Location?,
-        yaw: Float,
-        connectionState: CentrifugoConnectionState,
-        isStreaming: Boolean,
-        hasPermissions: Boolean,
-        isFrontCamera: Boolean,
-        onStartStream: () -> Unit,
-        onStopStream: () -> Unit,
-        onSwitchCamera: () -> Unit,
-        livekitShouldConnect: Boolean,
-        livekitIsMuted: Boolean,
-        livekitIsSpeakerMuted: Boolean, // ← fix nama konsisten
-        onLivekitConnect: () -> Unit,
-        onLivekitDisconnect: () -> Unit,
-        onLivekitMuteToggle: () -> Unit,
-        onLivekitSpeakerToggle: () -> Unit, // ← fix nama konsisten
-    ) {
-        val context = LocalContext.current
-
-        val hazeState = remember { HazeState() }
-        var showStopStreamDialog by remember { mutableStateOf(false) }
-
-        // Start: tap langsung mulai (resolusi tetap 720p). Stop: tekan-tahan 3 detik.
-        val holdProgress = remember { Animatable(0f) }
-        var isHoldingStop by remember { mutableStateOf(false) }
-        val holdScope = rememberCoroutineScope()
-
-        var swipMapToCam by remember { mutableStateOf(false) }
-
-        val livekitViewModel: LivekitViewModel = hiltViewModel()
-        val token by livekitViewModel.roomToken.collectAsState()
-
-        val userViewModel: UserViewModel = hiltViewModel()
-        val user by userViewModel.profile.collectAsState()
-
-        var listUserSpeaking by remember { mutableStateOf<List<String>>(emptyList()) }
-
-        LaunchedEffect(token) {
-            if (!token.isNullOrEmpty()) {
-                onLivekitConnect()
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(backgroundColor)
-                .navigationBarsPadding(),
-        ) {
-            Column {
-                ConnectionStatusBar(
-                    username = user?.name?.trim(),
-                    connectionState = connectionState,
-                    onLogoutClick = {
-                        val intent = Intent(context, MainActivity::class.java)
-                        intent.flags =
-                            Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        context.startActivity(intent)
-                    },
-                )
-
-                Box(
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Box(
-                        modifier = if (swipMapToCam) {
-                            Modifier
-                                .width(140.dp)
-                                .height(140.dp)
-                                .align(Alignment.TopStart)
-                                .padding(16.dp)
-                                .zIndex(0.2f)
-                        } else {
-                            Modifier.fillMaxSize()
-                        },
-                    ) {
-                        RCCameraPreview(
-                            hasPermissions = hasPermissions,
-                            controller = cameraController,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(4.dp)),
-                        )
-                        if (swipMapToCam) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clickable { swipMapToCam = !swipMapToCam },
-                            )
-                        }
-                    }
-
-                    Box(
-                        modifier =
-                        if (swipMapToCam) {
-                            Modifier.fillMaxSize().zIndex(0.1f)
-                        } else {
-                            Modifier
-                                .width(140.dp)
-                                .height(140.dp)
-                                .align(Alignment.TopStart)
-                                .padding(16.dp)
-                        },
-                    ) {
-                        OsmdroidMapView(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(),
-                            deviceLocation = GeoPoint(
-                                location?.latitude ?: -6.9828,
-                                location?.longitude ?: 110.4091,
-                            ),
-                            deviceMarkerIcon = R.drawable.ic_map,
-                            pocYaw = yaw,
-                        )
-                        if (!swipMapToCam) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clickable { swipMapToCam = !swipMapToCam },
-                            )
-                        }
-                    }
-
-                    Column(
-                        verticalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .fillMaxWidth()
-                            .zIndex(0.3f),
-                    ) {
-                        if (isStreaming) {
-                            AlertStream()
-                        }
-                    }
-
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .hazeChild(state = hazeState, style = HazeMaterials.ultraThin())
-                            .padding(horizontal = 16.dp, vertical = 24.dp)
-                            .zIndex(0.4f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            val livekitConnected =
-                                livekitShouldConnect && !token.isNullOrEmpty()
-
-                            // 1. Call
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0x66041F44))
-                                    .clickable { showStopStreamDialog = true },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Image(
-                                    painter = painterResource(
-                                        id = if (livekitConnected) R.drawable.outline_phone_in_talk_24 else R.drawable.outline_call_24,
-                                    ),
-                                    contentDescription = "Call",
-                                    modifier = Modifier.size(22.dp),
-                                    colorFilter = ColorFilter.tint(if (livekitConnected) successColor else Color.White),
-                                )
-                            }
-
-                            // 2. Flip kamera
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0x66041F44))
-                                    .clickable { onSwitchCamera() },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.outline_flip_camera_ios_24),
-                                    contentDescription = "Switch camera",
-                                    modifier = Modifier.size(22.dp),
-                                    colorFilter = ColorFilter.tint(Color.White),
-                                )
-                            }
-
-                            // 3. Start / Stop Stream — tap untuk mulai, TAHAN 3 detik untuk stop
-                            val streamingLatest by rememberUpdatedState(isStreaming)
-                            val permissionLatest by rememberUpdatedState(hasPermissions)
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(58.dp)
-                                    .clip(RoundedCornerShape(29.dp))
-                                    .background(
-                                        when {
-                                            !hasPermissions -> Color.Gray
-                                            isStreaming -> dangerColor
-                                            else -> colorPrimary
-                                        },
-                                    )
-                                    .pointerInput(Unit) {
-                                        detectTapGestures(
-                                            onPress = {
-                                                if (!permissionLatest) return@detectTapGestures
-                                                if (!streamingLatest) {
-                                                    // Belum live → tap biasa untuk mulai.
-                                                    if (tryAwaitRelease()) onStartStream()
-                                                } else {
-                                                    // Sedang live → tahan hingga ring penuh untuk stop.
-                                                    isHoldingStop = true
-                                                    val fillJob = holdScope.launch {
-                                                        holdProgress.snapTo(0f)
-                                                        holdProgress.animateTo(
-                                                            targetValue = 1f,
-                                                            animationSpec = tween(
-                                                                durationMillis = Constants.HOLD_TO_STOP_MS,
-                                                                easing = LinearEasing,
-                                                            ),
-                                                        )
-                                                        onStopStream()
-                                                    }
-                                                    tryAwaitRelease()
-                                                    if (holdProgress.value < 1f) fillJob.cancel()
-                                                    isHoldingStop = false
-                                                    holdScope.launch { holdProgress.snapTo(0f) }
-                                                }
-                                            },
-                                        )
-                                    },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                                ) {
-                                    Image(
-                                        painter = painterResource(
-                                            id = if (isStreaming) R.drawable.outline_stop_circle_24 else R.drawable.outline_smart_display_24,
-                                        ),
-                                        contentDescription = null,
-                                        colorFilter = ColorFilter.tint(if (isStreaming) Color.White else backgroundColor),
-                                    )
-                                    Text(
-                                        text = if (isStreaming) "Tahan untuk Stop" else "Start Stream",
-                                        color = if (isStreaming) Color.White else backgroundColor,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                }
-                            }
-
-                            // 4. Record video (toggle: tap mulai, tap lagi berhenti & simpan)
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .border(2.dp, Color.White, CircleShape)
-                                    .clickable(enabled = hasPermissions) {
-                                        if (isRecording) stopRecording() else startRecording()
-                                    },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(if (isRecording) 20.dp else 30.dp)
-                                        .clip(RoundedCornerShape(if (isRecording) 4.dp else 15.dp))
-                                        .background(dangerColor),
-                                )
-                            }
-
-                            // 5. Ambil foto
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFEAF6F9))
-                                    .clickable(enabled = hasPermissions) { takePhoto() },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.outline_photo_camera_24),
-                                    contentDescription = "Camera",
-                                    modifier = Modifier.size(24.dp),
-                                    colorFilter = ColorFilter.tint(backgroundColor),
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Overlay ring merah saat menahan tombol Stop
-            if (isHoldingStop) {
-                RCHoldToStopOverlay(progress = holdProgress.value)
-            }
-
-            if (livekitShouldConnect && !token.isNullOrEmpty()) {
-                RoomScope(
-                    url = settingsRepository.getConfig().livekitUrl,
-                    token = token!!,
-                    audio = true,
-                    video = false,
-                    connect = true,
-                ) {
-                    // 1. Track lokal (mic)
-                    val localTrackRefs by rememberTracks(sources = listOf(Track.Source.MICROPHONE))
-                    val audioTracks = localTrackRefs.filter {
-                        it.publication?.kind == Track.Kind.AUDIO
-                    }
-
-                    // 2. Remote audio tracks (sudah subscribed)
-                    val remoteAudioTrackRefs by rememberTracks(
-                        sources = listOf(Track.Source.MICROPHONE),
-                        onlySubscribed = true,
-                    )
-                    val remoteAudioTracks = remoteAudioTrackRefs.filter {
-                        it.participant is RemoteParticipant
-                    }
-
-                    // ── Effect: Mic lokal ──────────────────────────────────────────────────
-                    // ✅ Pakai localTrackRefs sebagai dependency supaya tunggu mic track ter-publish
-                    LaunchedEffect(localTrackRefs, livekitIsMuted) {
-                        localTrackRefs.forEach { trackRef ->
-                            val track = trackRef.publication?.track
-                            if (track != null) {
-                                it.localParticipant.setMicrophoneEnabled(!livekitIsMuted)
-                                Log.d("LiveKit", "🎤 Mic enabled = ${!livekitIsMuted}")
-                            }
-                        }
-                    }
-
-                    // ── Effect: Speaker mute via AudioManager (level system) ───────────────
-                    LaunchedEffect(livekitIsSpeakerMuted) {
-                        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                        am.adjustStreamVolume(
-                            AudioManager.STREAM_VOICE_CALL,
-                            if (livekitIsSpeakerMuted) {
-                                AudioManager.ADJUST_MUTE
-                            } else {
-                                AudioManager.ADJUST_UNMUTE
-                            },
-                            0,
-                        )
-                        Log.d("LiveKit", "🔇 STREAM_VOICE_CALL muted=$livekitIsSpeakerMuted")
-                    }
-
-                    // ── Effect: Speaker mute via track volume (level LiveKit, per-track) ───
-                    for (trackRef in remoteAudioTracks) {
-                        val sid = trackRef.publication?.sid ?: continue
-                        key(sid) {
-                            val track = trackRef.publication?.track
-                            LaunchedEffect(livekitIsSpeakerMuted, track) {
-                                val audioTrack = track as? RemoteAudioTrack
-                                if (audioTrack != null) {
-                                    val vol = if (livekitIsSpeakerMuted) 0.0 else 1.0
-                                    audioTrack.setVolume(vol)
-                                    Log.d("LiveKit", "🔊 Track $sid → volume=$vol")
-                                } else {
-                                    Log.w("LiveKit", "⚠️ Track $sid bukan RemoteAudioTrack: $track")
-                                }
-                            }
-                        }
-                    }
-                    // Dialog hanya terima data, tidak kelola koneksi
-                    if (showStopStreamDialog) {
-                        DialogCall(
-                            onDismiss = { showStopStreamDialog = false },
-                            audioTracks = audioTracks,
-                            isMuted = livekitIsMuted,
-                            isSpeakerMuted = livekitIsSpeakerMuted,
-                            onMuteToggle = onLivekitMuteToggle,
-                            onSpeakerToggle = onLivekitSpeakerToggle,
-                            onEndCall = {
-                                onLivekitDisconnect()
-                                livekitViewModel.clearRoomToken()
-                            },
-                            onJoin = null,
-                        )
-                    }
-                }
-            }
-
-            if (showStopStreamDialog && !livekitShouldConnect) {
-                DialogCall(
-                    onDismiss = { showStopStreamDialog = false },
-                    audioTracks = emptyList(),
-                    isMuted = livekitIsMuted,
-                    isSpeakerMuted = livekitIsSpeakerMuted, // ← fix: tambah yang hilang
-                    onMuteToggle = onLivekitMuteToggle,
-                    onSpeakerToggle = onLivekitSpeakerToggle, // ← fix: tambah yang hilang
-                    onEndCall = { },
-                    onJoin = { livekitViewModel.join() },
-                )
-            }
-        }
-    }
 }
