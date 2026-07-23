@@ -1,72 +1,50 @@
 package id.co.alphanusa.perisaipoc.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import id.co.alphanusa.perisaipoc.data.remote.api.ApiService
-import id.co.alphanusa.perisaipoc.data.remote.response.Participant
+import dagger.hilt.android.lifecycle.HiltViewModel
+import id.co.alphanusa.perisaipoc.core.common.AppResult
+import id.co.alphanusa.perisaipoc.domain.model.CallParticipant
+import id.co.alphanusa.perisaipoc.domain.usecase.GetCallParticipantsUseCase
+import id.co.alphanusa.perisaipoc.domain.usecase.JoinCallUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class LivekitViewModel(private val apiService: ApiService) : ViewModel() {
-    // State untuk menyimpan token (awalnya null)
-    private val _livekitToken = MutableStateFlow<String?>(null)
-    val livekitToken: StateFlow<String?> = _livekitToken.asStateFlow()
+/** Mengelola token room dan daftar peserta komunikasi suara (LiveKit). */
+@HiltViewModel
+class LivekitViewModel @Inject constructor(
+    private val joinCall: JoinCallUseCase,
+    private val getParticipants: GetCallParticipantsUseCase,
+) : ViewModel() {
 
-    private val _listParticipant = MutableStateFlow<List<Participant>>(emptyList())
-    val listParticipant: StateFlow<List<Participant>> = _listParticipant.asStateFlow()
+    private val _roomToken = MutableStateFlow<String?>(null)
+    val roomToken: StateFlow<String?> = _roomToken.asStateFlow()
 
-    fun fetchLivekitToken() {
+    private val _participants = MutableStateFlow<List<CallParticipant>>(emptyList())
+    val participants: StateFlow<List<CallParticipant>> = _participants.asStateFlow()
+
+    fun join() {
         viewModelScope.launch {
-            try {
-                val response = apiService.generateLivekitToken()
-
-                if (response.isSuccessful) {
-                    val response = response.body()
-                    // Misalnya token ada di dalam properti 'token' pada object response Anda
-                    _livekitToken.value = response?.data?.token
-                } else {
-                    println("Gagal: HTTP ${response.code()}")
-                }
-            } catch (e: Exception) {
-                println("Error Jaringan: ${e.localizedMessage}")
+            when (val result = joinCall()) {
+                is AppResult.Success -> _roomToken.value = result.data.token
+                is AppResult.Failure -> Unit
             }
         }
     }
 
-    fun fetchListParticipant() {
+    fun refreshParticipants() {
         viewModelScope.launch {
-            try {
-                val response = apiService.generateListParticipant()
-                if (response.isSuccessful) {
-                    val response = response.body()
-                    // Misalnya token ada di dalam properti 'token' pada object response Anda
-                    _listParticipant.value = response?.data ?: emptyList()
-                } else {
-                    println("Gagal: HTTP ${response.code()}")
-                }
-            } catch (e: Exception) {
-                println("Error Jaringan: ${e.localizedMessage}")
+            when (val result = getParticipants()) {
+                is AppResult.Success -> _participants.value = result.data
+                is AppResult.Failure -> Unit
             }
         }
     }
 
-    fun clearLivekitToken() {
-        _livekitToken.value = null
-    }
-}
-
-// Factory diperlukan karena ViewModel kita membutuhkan parameter (apiService)
-class LivekitViewModelFactory(
-    private val apiService: ApiService,
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(LivekitViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return LivekitViewModel(apiService) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
+    fun clearRoomToken() {
+        _roomToken.value = null
     }
 }

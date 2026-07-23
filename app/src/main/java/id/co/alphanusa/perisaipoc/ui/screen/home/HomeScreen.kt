@@ -49,15 +49,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.materials.HazeMaterials
 import id.co.alphanusa.perisaipoc.R
 import id.co.alphanusa.perisaipoc.RCScreenActivity
-import id.co.alphanusa.perisaipoc.data.local.AppSettingsManager
-import id.co.alphanusa.perisaipoc.data.remote.api.ApiConfig
 import id.co.alphanusa.perisaipoc.ui.components.QRCodeScannerDialog
 import id.co.alphanusa.perisaipoc.ui.components.backgroundColor
 import id.co.alphanusa.perisaipoc.ui.components.colorPrimary
@@ -65,8 +63,8 @@ import id.co.alphanusa.perisaipoc.ui.components.dangerColor
 import id.co.alphanusa.perisaipoc.ui.viewmodel.AuthViewModel
 
 @Composable
-fun HomeScreen(authViewModel: AuthViewModel = viewModel(), onNavigateToSettings: () -> Unit) {
-    val authState by authViewModel.authState.collectAsState()
+fun HomeScreen(authViewModel: AuthViewModel = hiltViewModel(), onNavigateToSettings: () -> Unit) {
+    val authState by authViewModel.state.collectAsState()
 
     // Sesi masih ada bila sudah login ATAU refresh gagal/timeout (refresh token masih tersimpan).
     // Dalam kondisi ini tombol bawah = Logout, bukan Scan QR.
@@ -291,7 +289,7 @@ fun HomeScreen(authViewModel: AuthViewModel = viewModel(), onNavigateToSettings:
                         }
 
                         Button(
-                            onClick = { authViewModel.refreshToken() },
+                            onClick = { authViewModel.reconnect() },
                             enabled = !authState.isLoading,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -398,31 +396,9 @@ fun HomeScreen(authViewModel: AuthViewModel = viewModel(), onNavigateToSettings:
             QRCodeScannerDialog(
                 onDismiss = { showQRScanner = false },
                 onQRCodeScanned = { qrCode: String ->
-                    val parts = qrCode.split("|")
-
-                    if (parts.size == 5) {
-                        val ctx = context ?: return@QRCodeScannerDialog
-                        val settings = AppSettingsManager.getInstance(ctx)
-
-                        val url = parts[0]
-                        val centrifugo = parts[1]
-                        val rtmp = parts[2]
-                        val livekit = parts[3]
-                        val token = parts[4]
-
-                        settings.setBaseUrl(url)
-                        settings.setCentrifugoWebSocketUrl(centrifugo + "/connection/websocket")
-                        settings.setRtmpUrl(rtmp)
-                        settings.seLivekitUrl(livekit)
-
-                        ApiConfig.getInstance(ctx).recreate(ctx)
-
-                        authViewModel.loginWithQR(token)
-
-                        showQRScanner = false
-                    } else {
-                        Toast.makeText(context, "Format QR tidak valid!", Toast.LENGTH_SHORT).show()
-                    }
+                    // Parsing QR & penyimpanan konfigurasi ditangani ApplyQrConfigUseCase.
+                    authViewModel.onQrScanned(qrCode)
+                    showQRScanner = false
                 },
             )
         }

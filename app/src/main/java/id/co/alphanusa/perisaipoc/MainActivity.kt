@@ -18,7 +18,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
-import id.co.alphanusa.perisaipoc.data.local.AppSettingsManager
 import id.co.alphanusa.perisaipoc.ui.screen.home.HomeScreen
 import id.co.alphanusa.perisaipoc.ui.screen.setting.SettingsScreen
 import id.co.alphanusa.perisaipoc.ui.screen.splash.SplashScreen
@@ -57,7 +56,6 @@ class MainActivity : ComponentActivity() {
 fun App(name: String, modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val context = LocalContext.current
-    val settingsManager = AppSettingsManager.getInstance(context)
 
     NavHost(
         navController = navController,
@@ -83,7 +81,6 @@ fun App(name: String, modifier: Modifier = Modifier) {
 
         composable("settings") {
             SettingsScreen(
-                settingsManager = settingsManager,
                 onBackPressed = {
                     navController.popBackStack()
                 },

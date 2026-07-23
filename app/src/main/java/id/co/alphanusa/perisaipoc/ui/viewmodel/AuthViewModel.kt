@@ -1,169 +1,137 @@
 package id.co.alphanusa.perisaipoc.ui.viewmodel
 
-import android.app.Application
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import id.co.alphanusa.perisaipoc.data.remote.api.ApiConfig
-import id.co.alphanusa.perisaipoc.domain.model.AuthState
+import dagger.hilt.android.lifecycle.HiltViewModel
+import id.co.alphanusa.perisaipoc.core.common.AppResult
+import id.co.alphanusa.perisaipoc.core.util.Constants
+import id.co.alphanusa.perisaipoc.domain.usecase.ApplyQrConfigUseCase
+import id.co.alphanusa.perisaipoc.domain.usecase.HasStoredSessionUseCase
+import id.co.alphanusa.perisaipoc.domain.usecase.LoginWithOtpUseCase
+import id.co.alphanusa.perisaipoc.domain.usecase.LogoutUseCase
+import id.co.alphanusa.perisaipoc.domain.usecase.RefreshSessionUseCase
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+import javax.inject.Inject
 
-class AuthViewModel(application: Application) : AndroidViewModel(application) {
+/** Status autentikasi yang dibaca UI. */
+data class AuthUiState(
+    val isLoggedIn: Boolean = false,
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    /** True bila sesi masih tersimpan tetapi gagal terhubung (tawarkan Reconnect). */
+    val isConnectionError: Boolean = false,
+)
 
-    private val apiConfig get() = ApiConfig.getInstance(getApplication())
-    private val authRepository get() = apiConfig.authRepository
-    private val _authState = MutableStateFlow(AuthState())
-    val authState: StateFlow<AuthState> = _authState.asStateFlow()
+@HiltViewModel
+class AuthViewModel @Inject constructor(
+    private val applyQrConfig: ApplyQrConfigUseCase,
+    private val loginWithOtp: LoginWithOtpUseCase,
+    private val refreshSession: RefreshSessionUseCase,
+    private val logoutUseCase: LogoutUseCase,
+    private val hasStoredSession: HasStoredSessionUseCase,
+) : ViewModel() {
 
-    companion object {
-        private const val TAG = "AuthViewModel"
+    private companion object {
+        const val TAG = "AuthViewModel"
+        const val INVALID_QR = "Format QR tidak valid!"
+        const val LOGIN_TIMEOUT = "Waktu login habis (Timeout). Periksa koneksi server/internet."
+        const val REFRESH_TIMEOUT =
+            "Server tidak merespons (timeout 5 detik). Periksa koneksi lalu coba Reconnect."
+        const val GENERIC_ERROR = "Terjadi kesalahan sistem/jaringan."
     }
+
+    private val _state = MutableStateFlow(AuthUiState())
+    val state: StateFlow<AuthUiState> = _state.asStateFlow()
 
     init {
-        // Check if user has valid session on app start
-        checkExistingSession()
+        if (hasStoredSession()) reconnect() else _state.value = AuthUiState()
     }
 
-    private fun checkExistingSession() {
-        if (authRepository.hasValidSession()) {
-            refreshToken()
-        } else {
-            // Tidak ada session, langsung set state final
-            _authState.value = AuthState(isLoading = false)
+    /** Dipanggil setelah QR berhasil dipindai. */
+    fun onQrScanned(rawQr: String) {
+        val otp = applyQrConfig(rawQr)
+        if (otp == null) {
+            _state.value = _state.value.copy(error = INVALID_QR)
+            return
         }
+        login(otp)
     }
 
-    fun loginWithQR(qrCode: String) {
+    private fun login(otp: String) {
         viewModelScope.launch {
-            // Nyalakan loading
-            _authState.value = _authState.value.copy(isLoading = true, error = null)
-
-            try {
-                // Berikan batas waktu agar tidak stuck selamanya jika server no-response (misal: 10 detik)
-                withTimeout(5_000L) {
-                    authRepository.login(qrCode).fold(
-                        onSuccess = { loginData ->
-                            apiConfig.setCurrentAccessToken(loginData.accessToken)
-                            _authState.value = AuthState(
-                                isLoggedIn = true,
-                                accessToken = loginData.accessToken,
-                                isLoading = false,
-                                error = null,
-                            )
-                            Log.d(TAG, "Login successful")
-                        },
-                        onFailure = { exception ->
-                            _authState.value = AuthState(
-                                isLoggedIn = false,
-                                accessToken = null,
-                                isLoading = false,
-                                error = exception.message,
-                            )
-                            Log.e(TAG, "Login failed: ${exception.message}")
-                        },
-                    )
+            _state.value = _state.value.copy(isLoading = true, error = null)
+            runWithTimeout(
+                timeoutMessage = LOGIN_TIMEOUT,
+                markConnectionError = false,
+            ) {
+                when (val result = loginWithOtp(otp)) {
+                    is AppResult.Success -> _state.value = AuthUiState(isLoggedIn = true)
+                    is AppResult.Failure -> {
+                        Log.e(TAG, "Login gagal: ${result.message}")
+                        _state.value = AuthUiState(error = result.message)
+                    }
                 }
-            } catch (e: TimeoutCancellationException) {
-                // Menangkap jika proses login memakan waktu lebih dari 10 detik
-                Log.e(TAG, "Login timed out")
-                _authState.value = AuthState(
-                    isLoggedIn = false,
-                    accessToken = null,
-                    isLoading = false,
-                    error = "Waktu login habis (Timeout). Periksa koneksi server/internet.",
-                )
-            } catch (e: Exception) {
-                // Menangkap error jaringan mendadak (seperti SocketTimeoutException) yang lolos dari .fold()
-                Log.e(TAG, "Login unexpected error: ${e.message}")
-                _authState.value = AuthState(
-                    isLoggedIn = false,
-                    accessToken = null,
-                    isLoading = false,
-                    error = e.message ?: "Terjadi kesalahan sistem/jaringan.",
-                )
             }
         }
     }
 
-    fun refreshToken() {
+    /** Mencoba memakai kembali sesi tersimpan; tidak menghapus sesi bila gagal. */
+    fun reconnect() {
         viewModelScope.launch {
-            _authState.value = _authState.value.copy(isLoading = true, error = null)
-
-            try {
-                withTimeout(5_000L) { // timeout 5 detik
-                    authRepository.refreshToken().fold(
-                        onSuccess = { newAccessToken ->
-                            _authState.value = AuthState(
-                                isLoggedIn = true,
-                                accessToken = newAccessToken,
-                                isLoading = false,
-                            )
-                            apiConfig.setCurrentAccessToken(newAccessToken)
-                        },
-                        onFailure = { exception ->
-                            // Jangan langsung logout: tampilkan error + biarkan user Reconnect
-                            Log.e(TAG, "Token refresh failed: ${exception.message}")
-                            apiConfig.setCurrentAccessToken(null)
-                            _authState.value = AuthState(
-                                isLoggedIn = false,
-                                isLoading = false,
-                                error = exception.message ?: "Gagal menyambung ke server.",
-                                isConnectionError = true,
-                            )
-                        },
-                    )
+            _state.value = _state.value.copy(isLoading = true, error = null)
+            runWithTimeout(
+                timeoutMessage = REFRESH_TIMEOUT,
+                markConnectionError = true,
+            ) {
+                when (val result = refreshSession()) {
+                    is AppResult.Success -> _state.value = AuthUiState(isLoggedIn = true)
+                    is AppResult.Failure -> {
+                        Log.e(TAG, "Refresh gagal: ${result.message}")
+                        _state.value = AuthUiState(
+                            error = result.message,
+                            isConnectionError = true,
+                        )
+                    }
                 }
-            } catch (e: TimeoutCancellationException) {
-                // Timeout 5 detik: JANGAN logout, tetap simpan sesi & minta user Reconnect
-                Log.e(TAG, "refreshToken timed out")
-                _authState.value = AuthState(
-                    isLoggedIn = false,
-                    isLoading = false,
-                    error = "Server tidak merespons (timeout 5 detik). Periksa koneksi lalu coba Reconnect.",
-                    isConnectionError = true,
-                )
-            } catch (e: Exception) {
-                Log.e(TAG, "refreshToken unexpected error: ${e.message}")
-                _authState.value = AuthState(
-                    isLoggedIn = false,
-                    isLoading = false,
-                    error = e.message ?: "Terjadi kesalahan jaringan. Coba Reconnect.",
-                    isConnectionError = true,
-                )
             }
         }
     }
 
     fun logout() {
-        viewModelScope.launch {
-            try {
-                authRepository.logout()
-            } catch (e: Exception) {
-                Log.e(TAG, "Logout error: ${e.message}")
-            }
-
-            // 🔥 clear semua state
-            apiConfig.clearSession() // ← tambahin ini
-            _authState.value = AuthState() // reset total
-
-            Log.d(TAG, "User logged out & state cleared")
-        }
+        logoutUseCase()
+        _state.value = AuthUiState()
+        Log.d(TAG, "Sesi dibersihkan")
     }
 
     fun clearError() {
-        _authState.value = _authState.value.copy(error = null)
+        _state.value = _state.value.copy(error = null)
     }
 
-    fun getCurrentAccessToken(): String? {
-        return _authState.value.accessToken
-    }
-
-    fun isLoggedIn(): Boolean {
-        return _authState.value.isLoggedIn && _authState.value.accessToken != null
+    private suspend fun runWithTimeout(
+        timeoutMessage: String,
+        markConnectionError: Boolean,
+        block: suspend () -> Unit,
+    ) {
+        try {
+            withTimeout(Constants.AUTH_TIMEOUT_MS) { block() }
+        } catch (e: TimeoutCancellationException) {
+            Log.e(TAG, "Operasi melewati batas waktu", e)
+            _state.value = AuthUiState(
+                error = timeoutMessage,
+                isConnectionError = markConnectionError,
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Kesalahan tak terduga", e)
+            _state.value = AuthUiState(
+                error = e.message ?: GENERIC_ERROR,
+                isConnectionError = markConnectionError,
+            )
+        }
     }
 }

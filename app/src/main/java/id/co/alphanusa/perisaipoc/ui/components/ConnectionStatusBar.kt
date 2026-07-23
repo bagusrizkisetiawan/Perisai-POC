@@ -32,9 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import id.co.alphanusa.perisaipoc.realtime.CentrifugoConnectionState
-import id.co.alphanusa.perisaipoc.ui.viewmodel.AuthViewModel
 
 @Composable
 fun ConnectionStatusBar(
@@ -42,8 +40,6 @@ fun ConnectionStatusBar(
     connectionState: CentrifugoConnectionState,
     onLogoutClick: () -> Unit,
 ) {
-    val authViewModel: AuthViewModel = viewModel()
-
     val isConnected = connectionState == CentrifugoConnectionState.CONNECTED
     val isConnecting = connectionState == CentrifugoConnectionState.CONNECTING
 
@@ -118,12 +114,7 @@ fun ConnectionStatusBar(
             }
         }
 
-        MenuWithLogout(
-            onLogoutClick = {
-                authViewModel.logout()
-                onLogoutClick()
-            },
-        )
+        MenuWithLogout(onLogoutClick = onLogoutClick)
     }
 }
 

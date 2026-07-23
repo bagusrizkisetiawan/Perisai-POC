@@ -19,19 +19,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import id.co.alphanusa.perisaipoc.R
-import id.co.alphanusa.perisaipoc.data.local.AppSettingsManager
-import id.co.alphanusa.perisaipoc.data.remote.api.ApiConfig
-import id.co.alphanusa.perisaipoc.data.remote.response.DrawMapItem
+import id.co.alphanusa.perisaipoc.core.util.Constants
+import id.co.alphanusa.perisaipoc.domain.model.MapBounds
+import id.co.alphanusa.perisaipoc.domain.model.MapOverlayItem
+import id.co.alphanusa.perisaipoc.domain.model.MapOverlayType
 import id.co.alphanusa.perisaipoc.ui.viewmodel.DrawViewModel
-import id.co.alphanusa.perisaipoc.ui.viewmodel.DrawViewModelFactory
 import id.co.alphanusa.perisaipoc.utils.GoogleSatelliteTile
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import org.osmdroid.events.DelayedMapListener
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
@@ -45,7 +41,7 @@ import org.osmdroid.views.overlay.Polygon
 import org.osmdroid.views.overlay.Polyline
 
 // Berapa lama (ms) tanpa sentuhan sebelum peta otomatis kembali mengikuti device
-private const val RECENTER_IDLE_MS = 4_000L
+private val RECENTER_IDLE_MS = Constants.MAP_RECENTER_IDLE_MS
 
 @Composable
 fun OsmdroidMapView(
@@ -60,17 +56,8 @@ fun OsmdroidMapView(
     val context = LocalContext.current
 
     // ── Setup auth & API ───────────────────────────────────────────────────
-    val authManager = remember { ApiConfig.getInstance(context) }
-    val httpClient = remember { authManager.getHttpClient() }
-    val drawApi = remember { authManager.apiService }
-    val drawVm: DrawViewModel = viewModel(factory = DrawViewModelFactory(drawApi))
-
-    val settingsManager = remember { AppSettingsManager.getInstance(context) }
-    val baseUrl = remember {
-        settingsManager.getBaseUrl().let { if (!it.endsWith("/")) "$it/" else it }
-    }
-
-    val drawItems by drawVm.drawItems.collectAsState()
+    val drawVm: DrawViewModel = hiltViewModel()
+    val drawItems by drawVm.items.collectAsState()
     var bounds by remember { mutableStateOf<BoundingBox?>(null) }
 
     // ── Cache icon per iconId (Map<id, Drawable>) ──────────────────────────
@@ -79,8 +66,8 @@ fun OsmdroidMapView(
     // Setiap kali drawItems berubah, download iconId yang belum ada di cache
     LaunchedEffect(drawItems) {
         val neededIds = drawItems
-            .filter { it.type.equals("pin", ignoreCase = true) }
-            .mapNotNull { it.icon?.takeIf { id -> id.isNotBlank() } }
+            .filter { it.type == MapOverlayType.PIN }
+            .mapNotNull { it.iconId }
             .toSet()
 
         val missing = neededIds - iconCache.keys
@@ -88,9 +75,8 @@ fun OsmdroidMapView(
 
         val fetched = mutableMapOf<String, Drawable>()
         missing.forEach { iconId ->
-            val url = "${baseUrl}v1/sticker/$iconId/media"
-            loadDrawableWithAuth(context, url, httpClient)?.let { drawable ->
-                fetched[iconId] = drawable
+            drawVm.loadSticker(iconId)?.let { bytes ->
+                bytes.toDrawable(context)?.let { drawable -> fetched[iconId] = drawable }
             }
         }
         if (fetched.isNotEmpty()) {
@@ -100,11 +86,13 @@ fun OsmdroidMapView(
 
     LaunchedEffect(bounds) {
         bounds?.let { b ->
-            drawVm.fetchDraw(
-                long1 = b.lonWest,
-                lat1 = b.latNorth,
-                long2 = b.lonEast,
-                lat2 = b.latSouth,
+            drawVm.loadOverlay(
+                MapBounds(
+                    westLongitude = b.lonWest,
+                    northLatitude = b.latNorth,
+                    eastLongitude = b.lonEast,
+                    southLatitude = b.latSouth,
+                ),
             )
         }
     }
@@ -188,13 +176,17 @@ fun OsmdroidMapView(
                     mapView.overlays.clear()
 
                     drawItems.forEach { item ->
-                        when (item.type.lowercase()) {
-                            "pin" -> item.toMarker(mapView, iconCache)?.let(mapView.overlays::add)
-                            "line" -> item.toPolyline(mapView, arrowDrawable)?.let {
-                                mapView.overlays.addAll(it) // ← addAll, bukan add
-                            }
-                            "area" -> item.toPolygon()?.let(mapView.overlays::add)
-                            "circle" -> item.toCircle()?.let(mapView.overlays::add)
+                        when (item.type) {
+                            MapOverlayType.PIN ->
+                                item.toMarker(mapView, iconCache)?.let(mapView.overlays::add)
+
+                            MapOverlayType.LINE ->
+                                item.toPolyline(mapView, arrowDrawable)
+                                    ?.let(mapView.overlays::addAll)
+
+                            MapOverlayType.AREA -> item.toPolygon()?.let(mapView.overlays::add)
+                            MapOverlayType.CIRCLE -> item.toCircle()?.let(mapView.overlays::add)
+                            MapOverlayType.UNKNOWN -> Unit
                         }
                     }
 
@@ -223,23 +215,23 @@ fun OsmdroidMapView(
 
 // ── Extensions ─────────────────────────────────────────────────────────────
 
-private fun DrawMapItem.parseColor(default: Int = android.graphics.Color.BLUE): Int =
+private fun MapOverlayItem.parseColor(default: Int = android.graphics.Color.BLUE): Int =
     runCatching { android.graphics.Color.parseColor(color) }.getOrDefault(default)
 
 /**
- * Pin marker. Icon di-resolve dari [iconCache] berdasarkan field [DrawMapItem.icon] (UUID).
- * Ukuran pakai field [DrawMapItem.size] (default 48 px kalau 0).
+ * Pin marker. Icon di-resolve dari [iconCache] berdasarkan field [MapOverlayItem.icon] (UUID).
+ * Ukuran pakai field [MapOverlayItem.size] (default 48 px kalau 0).
  */
-private fun DrawMapItem.toMarker(
+private fun MapOverlayItem.toMarker(
     mapView: MapView,
     iconCache: Map<String, Drawable>,
 ): Marker? {
     val p = point ?: return null
-    val iconId = this.icon?.takeIf { it.isNotBlank() } ?: return null
+    val iconId = this.iconId ?: return null
     val resolvedIcon = iconCache[iconId] ?: return null
 
     return Marker(mapView).apply {
-        position = GeoPoint(p.lat, p.long)
+        position = GeoPoint(p.latitude, p.longitude)
         title = this@toMarker.name ?: ""
         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
 
@@ -251,12 +243,12 @@ private fun DrawMapItem.toMarker(
     }
 }
 
-private fun DrawMapItem.toPolyline(
+private fun MapOverlayItem.toPolyline(
     mapView: MapView,
     arrowDrawable: Drawable?,
 ): List<Overlay>? {
-    val pts = points?.takeIf { it.size >= 2 } ?: return null
-    val geo = pts.map { GeoPoint(it.lat, it.long) }
+    val pts = points.takeIf { it.size >= 2 } ?: return null
+    val geo = pts.map { GeoPoint(it.latitude, it.longitude) }
     val color = parseColor()
     val stroke = (size.takeIf { it > 0 } ?: 6.0).toFloat()
 
@@ -352,10 +344,10 @@ private fun makeArrowMarker(
     setInfoWindow(null) // disable popup saat di-tap
 }
 
-private fun DrawMapItem.toPolygon(): Polygon? {
-    val pts = points?.takeIf { it.size >= 3 } ?: return null
+private fun MapOverlayItem.toPolygon(): Polygon? {
+    val pts = points.takeIf { it.size >= 3 } ?: return null
     return Polygon().apply {
-        points = pts.map { GeoPoint(it.lat, it.long) }
+        points = pts.map { GeoPoint(it.latitude, it.longitude) }
         val c = parseColor()
         fillPaint.color = (c and 0x00FFFFFF) or 0x40000000
         outlinePaint.color = c
@@ -364,10 +356,10 @@ private fun DrawMapItem.toPolygon(): Polygon? {
     }
 }
 
-private fun DrawMapItem.toCircle(): Polygon? {
+private fun MapOverlayItem.toCircle(): Polygon? {
     val p = point ?: return null
     return Polygon().apply {
-        points = Polygon.pointsAsCircle(GeoPoint(p.lat, p.long), radius)
+        points = Polygon.pointsAsCircle(GeoPoint(p.latitude, p.longitude), radius)
         val c = parseColor()
         fillPaint.color = (c and 0x00FFFFFF) or 0x40000000
         outlinePaint.color = c
@@ -376,29 +368,12 @@ private fun DrawMapItem.toCircle(): Polygon? {
     }
 }
 
-// ── Loader: download drawable lewat OkHttp (sudah ada auth header) ─────────
-suspend fun loadDrawableWithAuth(
-    context: Context,
-    url: String,
-    client: OkHttpClient,
-): Drawable? = withContext(Dispatchers.IO) {
-    runCatching {
-        val request = Request.Builder().url(url).get().build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                android.util.Log.w("OsmIcon", "Gagal load $url → HTTP ${response.code}")
-                return@use null
-            }
-            val body = response.body ?: return@use null
-            val bmp = BitmapFactory.decodeStream(body.byteStream())
-            bmp?.let { BitmapDrawable(context.resources, it) }
-        }
-    }.onFailure {
-        android.util.Log.e("OsmIcon", "Error load $url", it)
-    }.getOrNull()
-}
+// ── Decoder: ubah byte ikon menjadi Drawable ──────────────────────────────
+private fun ByteArray.toDrawable(context: Context): Drawable? = runCatching {
+    BitmapFactory.decodeByteArray(this, 0, size)?.let { BitmapDrawable(context.resources, it) }
+}.getOrNull()
 
-// ── Helper resize (tetap) ──────────────────────────────────────────────────
+/** Menyesuaikan lebar drawable ikon dengan tetap menjaga rasio aslinya. */
 fun resizeDrawableByWidth(context: Context, drawable: Drawable, targetWidth: Int): BitmapDrawable {
     val bitmap = if (drawable is BitmapDrawable) {
         drawable.bitmap

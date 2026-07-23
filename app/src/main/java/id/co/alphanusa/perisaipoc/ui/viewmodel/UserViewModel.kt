@@ -1,54 +1,40 @@
 package id.co.alphanusa.perisaipoc.ui.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import id.co.alphanusa.perisaipoc.data.remote.api.ApiService
-import id.co.alphanusa.perisaipoc.data.remote.response.UserData
+import dagger.hilt.android.lifecycle.HiltViewModel
+import id.co.alphanusa.perisaipoc.core.common.AppResult
+import id.co.alphanusa.perisaipoc.domain.model.UserProfile
+import id.co.alphanusa.perisaipoc.domain.usecase.GetUserProfileUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class UserViewModel(private val apiService: ApiService) : ViewModel() {
+/** Menyediakan profil pengguna yang sedang login untuk ditampilkan di UI. */
+@HiltViewModel
+class UserViewModel @Inject constructor(
+    private val getUserProfile: GetUserProfileUseCase,
+) : ViewModel() {
 
-    private val _user = MutableStateFlow<UserData?>(null)
-    val user: StateFlow<UserData?> = _user.asStateFlow()
+    private val _profile = MutableStateFlow<UserProfile?>(null)
+    val profile: StateFlow<UserProfile?> = _profile.asStateFlow()
 
     init {
-        fetchUser()
+        refresh()
     }
 
-    fun fetchUser() {
+    fun refresh() {
         viewModelScope.launch {
-            try {
-                val response = apiService.getMe()
-                if (response.isSuccessful) {
-                    _user.value = response.body()?.data
-                    Log.d("UserViewModel", "User loaded: ${_user.value?.Name}")
-                } else {
-                    Log.w("UserViewModel", "Gagal: HTTP ${response.code()}")
-                }
-            } catch (e: Exception) {
-                Log.e("UserViewModel", "Error Jaringan: ${e.localizedMessage}", e)
+            when (val result = getUserProfile()) {
+                is AppResult.Success -> _profile.value = result.data
+                is AppResult.Failure -> Unit
             }
         }
     }
 
-    fun clearUser() {
-        _user.value = null
-    }
-}
-
-class UserViewModelFactory(
-    private val apiService: ApiService,
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(UserViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return UserViewModel(apiService) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
+    fun clear() {
+        _profile.value = null
     }
 }

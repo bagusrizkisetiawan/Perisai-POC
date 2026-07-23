@@ -43,7 +43,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,15 +50,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.materials.HazeMaterials
 import id.co.alphanusa.perisaipoc.R
-import id.co.alphanusa.perisaipoc.data.remote.api.ApiConfig
-import id.co.alphanusa.perisaipoc.data.remote.response.Participant
+import id.co.alphanusa.perisaipoc.domain.model.CallParticipant
 import id.co.alphanusa.perisaipoc.ui.viewmodel.LivekitViewModel
-import id.co.alphanusa.perisaipoc.ui.viewmodel.LivekitViewModelFactory
 import io.livekit.android.compose.types.TrackReference
 import io.livekit.android.events.ParticipantEvent
 import io.livekit.android.events.collect
@@ -78,14 +75,11 @@ fun DialogCall(
 ) {
     val hazeState = remember { HazeState() }
     val isConnected = onJoin == null
-    val authManager = ApiConfig.getInstance(context = LocalContext.current)
-    val livekitApiService = authManager.apiService
-    val factory = remember(livekitApiService) { LivekitViewModelFactory(livekitApiService) }
-    val livekitViewModel: LivekitViewModel = viewModel(factory = factory)
-    val participants by livekitViewModel.listParticipant.collectAsState()
+    val livekitViewModel: LivekitViewModel = hiltViewModel()
+    val participants by livekitViewModel.participants.collectAsState()
 
     LaunchedEffect(Unit) {
-        livekitViewModel.fetchListParticipant()
+        livekitViewModel.refreshParticipants()
     }
 
     Dialog(
@@ -196,7 +190,7 @@ fun DialogCall(
                 if (isConnected) {
                     Spacer(modifier = Modifier.height(36.dp))
 
-                    ParticipantsGrid(
+                    CallParticipantsGrid(
                         audioTracks = audioTracks,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -245,7 +239,7 @@ fun DialogCall(
                             )
                         }
                     } else {
-                        ParticipantsJoined(participants = participants)
+                        CallParticipantsJoined(participants = participants)
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -464,9 +458,9 @@ fun DialogCall(
 }
 
 @Composable
-fun ParticipantsJoined(participants: List<Participant>) {
+fun CallParticipantsJoined(participants: List<CallParticipant>) {
     val maxVisible = 2
-    val visibleParticipants = participants.take(maxVisible)
+    val visibleCallParticipants = participants.take(maxVisible)
     val remainingCount = participants.size - maxVisible
 
     Column(modifier = Modifier.padding(vertical = 40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -476,7 +470,7 @@ fun ParticipantsJoined(participants: List<Participant>) {
             contentAlignment = Alignment.CenterStart,
         ) {
             Row {
-                visibleParticipants.forEachIndexed { index, participant ->
+                visibleCallParticipants.forEachIndexed { index, participant ->
                     Box(
                         modifier = Modifier
                             .offset(x = (index * (-12)).dp)
@@ -499,7 +493,7 @@ fun ParticipantsJoined(participants: List<Participant>) {
                 if (remainingCount > 0) {
                     Box(
                         modifier = Modifier
-                            .offset(x = (visibleParticipants.size * (-12)).dp)
+                            .offset(x = (visibleCallParticipants.size * (-12)).dp)
                             .size(36.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF1E3A5F))
@@ -528,7 +522,7 @@ fun ParticipantsJoined(participants: List<Participant>) {
     }
 }
 
-fun buildJoinedText(participants: List<Participant>): String {
+fun buildJoinedText(participants: List<CallParticipant>): String {
     return when {
         participants.isEmpty() -> "No one joined"
         participants.size == 1 -> "${participants[0].name} joined"
@@ -543,7 +537,7 @@ fun buildJoinedText(participants: List<Participant>): String {
 }
 
 @Composable
-fun ParticipantsGrid(
+fun CallParticipantsGrid(
     audioTracks: List<TrackReference>,
     modifier: Modifier = Modifier,
 ) {
@@ -576,7 +570,7 @@ fun ParticipantsGrid(
                                 .width(itemWidth)
                                 .height(itemHeight), // ✅ tinggi konsisten
                         ) {
-                            ParticipantBox(
+                            CallParticipantBox(
                                 trackRef = trackRef,
                                 modifier = Modifier.fillMaxSize(),
                             )
@@ -605,7 +599,7 @@ private fun <T> chunkedRows(items: List<T>): List<List<T>> = when (items.size) {
 }
 
 @Composable
-private fun ParticipantBox(
+private fun CallParticipantBox(
     trackRef: TrackReference,
     modifier: Modifier = Modifier,
 ) {

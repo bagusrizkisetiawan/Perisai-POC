@@ -30,6 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,19 +39,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import id.co.alphanusa.perisaipoc.BuildConfig
-import id.co.alphanusa.perisaipoc.data.local.AppSettingsManager
+import id.co.alphanusa.perisaipoc.domain.model.AppConfig
+import id.co.alphanusa.perisaipoc.ui.viewmodel.SettingViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    settingsManager: AppSettingsManager,
+    viewModel: SettingViewModel = hiltViewModel(),
     onBackPressed: () -> Unit,
 ) {
-    var baseUrl by remember { mutableStateOf(settingsManager.getBaseUrl()) }
-    var centrifugoUrl by remember { mutableStateOf(settingsManager.getCentrifugoWebSocketUrl()) }
-    var rtmpUrl by remember { mutableStateOf(settingsManager.getRtmpUrl()) }
-    var livekitUrl by remember { mutableStateOf(settingsManager.getLivekitUrl()) }
+    val config by viewModel.config.collectAsState()
+    var baseUrl by remember { mutableStateOf(config.baseUrl) }
+    var centrifugoUrl by remember { mutableStateOf(config.centrifugoWebSocketUrl) }
+    var rtmpUrl by remember { mutableStateOf(config.rtmpUrl) }
+    var livekitUrl by remember { mutableStateOf(config.livekitUrl) }
     var showSaveSnackbar by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
 
@@ -184,10 +188,14 @@ fun SettingsScreen(
             // Save Button
             Button(
                 onClick = {
-                    settingsManager.setBaseUrl(baseUrl)
-                    settingsManager.setCentrifugoWebSocketUrl(centrifugoUrl)
-                    settingsManager.setRtmpUrl(rtmpUrl)
-                    settingsManager.seLivekitUrl(livekitUrl)
+                    viewModel.save(
+                        AppConfig(
+                            baseUrl = baseUrl,
+                            centrifugoWebSocketUrl = centrifugoUrl,
+                            rtmpUrl = rtmpUrl,
+                            livekitUrl = livekitUrl,
+                        ),
+                    )
                     showSaveSnackbar = true
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -225,11 +233,12 @@ fun SettingsScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        settingsManager.resetToDefaults()
-                        baseUrl = settingsManager.getBaseUrl()
-                        centrifugoUrl = settingsManager.getCentrifugoWebSocketUrl()
-                        rtmpUrl = settingsManager.getRtmpUrl()
-                        livekitUrl = settingsManager.getLivekitUrl()
+                        viewModel.resetToDefaults()
+                        val fresh = viewModel.config.value
+                        baseUrl = fresh.baseUrl
+                        centrifugoUrl = fresh.centrifugoWebSocketUrl
+                        rtmpUrl = fresh.rtmpUrl
+                        livekitUrl = fresh.livekitUrl
                         showResetDialog = false
                         showSaveSnackbar = true
                     },

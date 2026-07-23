@@ -70,19 +70,21 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import dagger.hilt.android.AndroidEntryPoint
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.materials.HazeMaterials
+import id.co.alphanusa.perisaipoc.core.common.AppResult
 import id.co.alphanusa.perisaipoc.core.media.MediaStoreSaver
-import id.co.alphanusa.perisaipoc.data.local.AppSettingsManager
-import id.co.alphanusa.perisaipoc.data.remote.api.ApiConfig
-import id.co.alphanusa.perisaipoc.data.remote.api.ApiService
-import id.co.alphanusa.perisaipoc.domain.model.BatteryData
-import id.co.alphanusa.perisaipoc.domain.model.PocData
-import id.co.alphanusa.perisaipoc.domain.model.getBatteryStatus
+import id.co.alphanusa.perisaipoc.core.util.Constants
+import id.co.alphanusa.perisaipoc.domain.model.BatteryInfo
+import id.co.alphanusa.perisaipoc.domain.model.BatteryStatus
+import id.co.alphanusa.perisaipoc.domain.model.GpsSignalLevel
+import id.co.alphanusa.perisaipoc.domain.model.PocTelemetry
+import id.co.alphanusa.perisaipoc.domain.repository.SettingsRepository
+import id.co.alphanusa.perisaipoc.domain.usecase.BuildStreamUrlUseCase
 import id.co.alphanusa.perisaipoc.realtime.CentrifugoClientManager
 import id.co.alphanusa.perisaipoc.realtime.CentrifugoConnectionState
 import id.co.alphanusa.perisaipoc.stream.CameraStreamController
@@ -98,9 +100,7 @@ import id.co.alphanusa.perisaipoc.ui.components.dangerColor
 import id.co.alphanusa.perisaipoc.ui.components.successColor
 import id.co.alphanusa.perisaipoc.ui.theme.POCHuaweiStreamTheme
 import id.co.alphanusa.perisaipoc.ui.viewmodel.LivekitViewModel
-import id.co.alphanusa.perisaipoc.ui.viewmodel.LivekitViewModelFactory
 import id.co.alphanusa.perisaipoc.ui.viewmodel.UserViewModel
-import id.co.alphanusa.perisaipoc.ui.viewmodel.UserViewModelFactory
 import id.co.alphanusa.perisaipoc.utils.HuaweiLocationHelper
 import id.co.alphanusa.perisaipoc.utils.ILocationHelper
 import id.co.alphanusa.perisaipoc.utils.NativeLocationHelper
@@ -116,6 +116,7 @@ import kotlinx.coroutines.withContext
 import org.osmdroid.config.Configuration
 import org.osmdroid.util.GeoPoint
 import java.io.File
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
@@ -125,12 +126,12 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
     // =========================================================================
 
     // Services & Managers
-    private lateinit var centrifugoManager: CentrifugoClientManager
+    @Inject lateinit var centrifugoManager: CentrifugoClientManager
+
+    @Inject lateinit var buildStreamUrl: BuildStreamUrlUseCase
+
+    @Inject lateinit var settingsRepository: SettingsRepository
     private lateinit var locationHelper: ILocationHelper
-    private val authManager: ApiConfig by lazy { ApiConfig.getInstance(context = this) }
-    private val apiService: ApiService by lazy {
-        authManager.apiService
-    }
 
     // Camera & Stream (CameraX + RootEncoder RtmpStream)
     private val mediaStoreSaver by lazy { MediaStoreSaver(this) }
@@ -174,7 +175,6 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
             return
         }
 
-        centrifugoManager = CentrifugoClientManager.getInstance(this)
         centrifugoManager.startConnection()
 
         locationHelper = if (isHuaweiDevice()) {
@@ -193,11 +193,6 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
             currentLocation = location
             sendToCentrifugo()
         }
-
-        //  Setup Service menggunakan ApiConfig
-        val authManager = ApiConfig.getInstance(this)
-        val livekitApiService = authManager.apiService
-        val userApiService = authManager.apiService
 
         fetchRtmpUrl()
 
@@ -297,8 +292,6 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
                     onStartStream = { startRtmpStream() },
                     onStopStream = { stopRtmpStream() },
                     onSwitchCamera = { switchCamera() },
-                    livekitApiService = livekitApiService,
-                    userApiService = userApiService,
                     livekitShouldConnect = livekitShouldConnect,
                     livekitIsMuted = livekitIsMuted,
                     livekitIsSpeakerMuted = livekitIsSpeakerMuted,
@@ -374,30 +367,16 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
     // 3. CORE LOGIC (Network, Streaming, Centrifugo)
     // =========================================================================
 
+    /** Menyiapkan URL RTMP tujuan streaming lewat use case. */
     private fun fetchRtmpUrl() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val response = apiService.getPocInfo()
-                val accessToken = authManager.getCurrentAccessToken()
-                val appSettings = AppSettingsManager.getInstance(this@RCScreenActivity)
-                val baseRtmpUrl = appSettings.getRtmpUrl()
-                if (response.isSuccessful) {
-                    val pocId = response.body()?.data?.ID
-                    if (pocId != null) {
-                        withContext(Dispatchers.Main) {
-                            rtmpUrl =
-                                "$baseRtmpUrl/$pocId?user=drone&pass=$accessToken"
-                            Log.d("RTMP_URL", "Berhasil mengambil URL: $rtmpUrl")
-                        }
-                    } else {
-                        showToastOnMain("Data Drone ID kosong")
-                    }
-                } else {
-                    showToastOnMain("Gagal mengambil data drone dari server")
+        lifecycleScope.launch {
+            when (val result = buildStreamUrl()) {
+                is AppResult.Success -> {
+                    rtmpUrl = result.data
+                    Log.d("RTMP_URL", "URL streaming siap")
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                showToastOnMain("Error koneksi saat mengambil data drone")
+
+                is AppResult.Failure -> showToastOnMain(result.message)
             }
         }
     }
@@ -468,24 +447,26 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
     private fun sendToCentrifugo() {
         val loc = currentLocation
         if (centrifugoManager.connectionState.value == CentrifugoConnectionState.CONNECTED) {
-            val pocData = PocData(
+            val telemetry = PocTelemetry(
                 pitch = pitch.toDouble(),
                 roll = roll.toDouble(),
                 yaw = yaw.toDouble(),
-                aircraftLatitude = loc?.latitude ?: 0.0,
-                aircraftLongitude = loc?.longitude ?: 0.0,
-                aircraftAltitude = loc?.altitude ?: 0.0,
+                latitude = loc?.latitude ?: 0.0,
+                longitude = loc?.longitude ?: 0.0,
+                altitude = loc?.altitude ?: 0.0,
                 homeLatitude = loc?.latitude ?: 0.0,
                 homeLongitude = loc?.longitude ?: 0.0,
                 gpsSatelliteCount = 0,
-                gpsSignalLevel = if (loc != null) "GOOD" else "NO_GPS",
-                battery = BatteryData.SingleBatteryState(
-                    percentageRemaining = batteryLevel,
-                    voltageLevel = 0f,
-                    batteryStatus = getBatteryStatus(batteryLevel),
+                gpsSignalLevel =
+                if (loc != null) GpsSignalLevel.GOOD else GpsSignalLevel.NO_GPS,
+                battery = BatteryInfo(
+                    percentage = batteryLevel,
+                    voltage = 0f,
+                    status = BatteryStatus.fromPercentage(batteryLevel),
                 ),
+                timestamp = System.currentTimeMillis(),
             )
-            centrifugoManager.updatePocData(pocData)
+            centrifugoManager.updateTelemetry(telemetry)
         }
     }
 
@@ -580,8 +561,6 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
         onStartStream: () -> Unit,
         onStopStream: () -> Unit,
         onSwitchCamera: () -> Unit,
-        livekitApiService: ApiService,
-        userApiService: ApiService,
         livekitShouldConnect: Boolean,
         livekitIsMuted: Boolean,
         livekitIsSpeakerMuted: Boolean, // ← fix nama konsisten
@@ -602,13 +581,11 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
 
         var swipMapToCam by remember { mutableStateOf(false) }
 
-        val factory = remember(livekitApiService) { LivekitViewModelFactory(livekitApiService) }
-        val livekitViewModel: LivekitViewModel = viewModel(factory = factory)
-        val token by livekitViewModel.livekitToken.collectAsState()
+        val livekitViewModel: LivekitViewModel = hiltViewModel()
+        val token by livekitViewModel.roomToken.collectAsState()
 
-        val userFactory = remember(userApiService) { UserViewModelFactory(userApiService) }
-        val userViewModel: UserViewModel = viewModel(factory = userFactory, key = "UserViewModel")
-        val user by userViewModel.user.collectAsState()
+        val userViewModel: UserViewModel = hiltViewModel()
+        val user by userViewModel.profile.collectAsState()
 
         var listUserSpeaking by remember { mutableStateOf<List<String>>(emptyList()) }
 
@@ -626,7 +603,7 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
         ) {
             Column {
                 ConnectionStatusBar(
-                    username = user?.Name?.trim(),
+                    username = user?.name?.trim(),
                     connectionState = connectionState,
                     onLogoutClick = {
                         val intent = Intent(context, MainActivity::class.java)
@@ -794,7 +771,7 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
                                                         holdProgress.animateTo(
                                                             targetValue = 1f,
                                                             animationSpec = tween(
-                                                                durationMillis = 3000,
+                                                                durationMillis = Constants.HOLD_TO_STOP_MS,
                                                                 easing = LinearEasing,
                                                             ),
                                                         )
@@ -875,12 +852,9 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
                 RCHoldToStopOverlay(progress = holdProgress.value)
             }
 
-            val ctx = context ?: return@Box
-            val settings = AppSettingsManager.getInstance(ctx)
-
             if (livekitShouldConnect && !token.isNullOrEmpty()) {
                 RoomScope(
-                    url = settings.getLivekitUrl(),
+                    url = settingsRepository.getConfig().livekitUrl,
                     token = token!!,
                     audio = true,
                     video = false,
@@ -956,7 +930,7 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
                             onSpeakerToggle = onLivekitSpeakerToggle,
                             onEndCall = {
                                 onLivekitDisconnect()
-                                livekitViewModel.clearLivekitToken()
+                                livekitViewModel.clearRoomToken()
                             },
                             onJoin = null,
                         )
@@ -973,7 +947,7 @@ class RCScreenActivity : ComponentActivity(), CameraStreamController.Listener {
                     onMuteToggle = onLivekitMuteToggle,
                     onSpeakerToggle = onLivekitSpeakerToggle, // ← fix: tambah yang hilang
                     onEndCall = { },
-                    onJoin = { livekitViewModel.fetchLivekitToken() },
+                    onJoin = { livekitViewModel.join() },
                 )
             }
         }

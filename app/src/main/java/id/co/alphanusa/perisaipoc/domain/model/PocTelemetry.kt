@@ -1,77 +1,66 @@
 package id.co.alphanusa.perisaipoc.domain.model
 
-import com.google.gson.annotations.SerializedName
-
-data class PocData(
-    @SerializedName("pitch") val pitch: Double,
-    @SerializedName("roll") val roll: Double,
-    @SerializedName("yaw") val yaw: Double,
-    @SerializedName("battery") val battery: BatteryData?,
-    @SerializedName("aircraft_latitude") val aircraftLatitude: Double,
-    @SerializedName("aircraft_longitude") val aircraftLongitude: Double,
-    @SerializedName("aircraft_altitude") val aircraftAltitude: Double,
-    @SerializedName("home_latitude") val homeLatitude: Double,
-    @SerializedName("home_longitude") val homeLongitude: Double,
-    @SerializedName("gps_satellite_count") val gpsSatelliteCount: Int,
-    @SerializedName("gps_signal_level") val gpsSignalLevel: String,
-    @SerializedName("timestamp") val timestamp: Long = System.currentTimeMillis(),
+/**
+ * Telemetri perangkat yang dikirim berkala ke Centrifugo.
+ * Model murni tanpa anotasi serialisasi — bentuk kabelnya ada di `data/remote/dto`.
+ */
+data class PocTelemetry(
+    val pitch: Double,
+    val roll: Double,
+    val yaw: Double,
+    val battery: BatteryInfo?,
+    val latitude: Double,
+    val longitude: Double,
+    val altitude: Double,
+    val homeLatitude: Double,
+    val homeLongitude: Double,
+    val gpsSatelliteCount: Int,
+    val gpsSignalLevel: GpsSignalLevel,
+    val timestamp: Long,
 )
 
-sealed class BatteryData {
-    data class SingleBatteryState(
-        @SerializedName("battery_percentage") val percentageRemaining: Int,
-        @SerializedName("battery_voltage") val voltageLevel: Float,
-        @SerializedName("battery_status") val batteryStatus: BatteryStatus,
-    ) : BatteryData()
+data class BatteryInfo(
+    val percentage: Int,
+    val voltage: Float,
+    val status: BatteryStatus,
+)
 
-    data class DualBatteryState(
-        @SerializedName("battery_percentage1") val percentageRemaining1: Int,
-        @SerializedName("battery_voltage1") val voltageLevel1: Float,
-        @SerializedName("battery_status1") val batteryStatus1: BatteryStatus,
-        @SerializedName("battery_percentage2") val percentageRemaining2: Int,
-        @SerializedName("battery_voltage2") val voltageLevel2: Float,
-        @SerializedName("battery_status2") val batteryStatus2: BatteryStatus,
-    ) : BatteryData()
+enum class GpsSignalLevel(val wireValue: String) {
+    GOOD("GOOD"),
+    NO_GPS("NO_GPS"),
 }
 
-enum class BatteryStatus constructor(val index: Int) {
-    /**
-     * Battery is operating without issue
-     */
+enum class BatteryStatus(val index: Int) {
+    /** Baterai normal. */
     NORMAL(0),
 
-    /**
-     * Battery charge is starting to get low, to the point that the aircraft should return home
-     */
+    /** Mulai lemah — sebaiknya kembali ke titik aman. */
     WARNING_LEVEL_1(1),
 
-    /**
-     * Battery charge is starting to get very low, to the point that the aircraft should
-     * land immediately.
-     */
+    /** Sangat lemah — harus segera berhenti. */
     WARNING_LEVEL_2(2),
 
-    /**
-     * Battery has an error that is preventing a proper reading
-     */
+    /** Pembacaan baterai bermasalah. */
     ERROR(3),
 
-    /**
-     * Battery temperature is too high
-     */
+    /** Suhu baterai terlalu tinggi. */
     OVERHEATING(4),
 
-    /**
-     * The state of the battery is unknown or the system is initializing
-     */
+    /** Belum diketahui / masih inisialisasi. */
     UNKNOWN(5),
-}
+    ;
 
-fun getBatteryStatus(level: Int): BatteryStatus {
-    return when {
-        level >= 50 -> BatteryStatus.NORMAL
-        level in 20..49 -> BatteryStatus.WARNING_LEVEL_1
-        level in 1..19 -> BatteryStatus.WARNING_LEVEL_2
-        else -> BatteryStatus.ERROR
+    companion object {
+        private const val NORMAL_MIN = 50
+        private const val WARNING_1_MIN = 20
+        private const val WARNING_2_MIN = 1
+
+        /** Menentukan status dari persentase baterai. */
+        fun fromPercentage(percentage: Int): BatteryStatus = when {
+            percentage >= NORMAL_MIN -> NORMAL
+            percentage >= WARNING_1_MIN -> WARNING_LEVEL_1
+            percentage >= WARNING_2_MIN -> WARNING_LEVEL_2
+            else -> ERROR
+        }
     }
 }

@@ -1,27 +1,24 @@
 package id.co.alphanusa.perisaipoc.data.remote.interceptor
 
+import id.co.alphanusa.perisaipoc.data.local.SessionManager
 import okhttp3.Interceptor
 import okhttp3.Response
+import javax.inject.Inject
+import javax.inject.Singleton
 
-/**
- * Menambahkan header Authorization: Bearer <token> ke setiap request.
- * Token diambil lewat [tokenProvider] agar selalu mengikuti token terbaru.
- */
-class AuthInterceptor(
-    private val tokenProvider: () -> String?,
+/** Menambahkan header `Authorization: Bearer <accessToken>` bila sesi tersedia. */
+@Singleton
+class AuthInterceptor @Inject constructor(
+    private val sessionManager: SessionManager,
 ) : Interceptor {
+
     override fun intercept(chain: Interceptor.Chain): Response {
-        val originalRequest = chain.request()
-        val accessToken = tokenProvider()
+        val request = chain.request()
+        val token = sessionManager.currentAccessToken() ?: return chain.proceed(request)
 
-        val newRequest = if (accessToken != null) {
-            originalRequest.newBuilder()
-                .header("Authorization", "Bearer $accessToken")
-                .build()
-        } else {
-            originalRequest
-        }
-
-        return chain.proceed(newRequest)
+        val authorized = request.newBuilder()
+            .header("Authorization", "Bearer $token")
+            .build()
+        return chain.proceed(authorized)
     }
 }

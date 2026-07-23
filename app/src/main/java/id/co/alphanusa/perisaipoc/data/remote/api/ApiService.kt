@@ -1,62 +1,60 @@
 package id.co.alphanusa.perisaipoc.data.remote.api
 
-import id.co.alphanusa.perisaipoc.data.remote.request.CentrifugoTokenRequest
-import id.co.alphanusa.perisaipoc.data.remote.request.LoginRequest
-import id.co.alphanusa.perisaipoc.data.remote.request.RefreshTokenRequest
-import id.co.alphanusa.perisaipoc.data.remote.response.CentrifugoTokenResponse
-import id.co.alphanusa.perisaipoc.data.remote.response.DrawResponse
-import id.co.alphanusa.perisaipoc.data.remote.response.LivekitResponse
-import id.co.alphanusa.perisaipoc.data.remote.response.LoginResponse
-import id.co.alphanusa.perisaipoc.data.remote.response.ParticipantsResponse
-import id.co.alphanusa.perisaipoc.data.remote.response.PocResponse
-import id.co.alphanusa.perisaipoc.data.remote.response.RefreshTokenResponse
-import id.co.alphanusa.perisaipoc.data.remote.response.UserResponse
+import id.co.alphanusa.perisaipoc.data.remote.dto.CentrifugoTokenRequestDto
+import id.co.alphanusa.perisaipoc.data.remote.dto.CentrifugoTokenResponseDto
+import id.co.alphanusa.perisaipoc.data.remote.dto.DrawResponseDto
+import id.co.alphanusa.perisaipoc.data.remote.dto.LivekitResponseDto
+import id.co.alphanusa.perisaipoc.data.remote.dto.LoginRequestDto
+import id.co.alphanusa.perisaipoc.data.remote.dto.LoginResponseDto
+import id.co.alphanusa.perisaipoc.data.remote.dto.ParticipantsResponseDto
+import id.co.alphanusa.perisaipoc.data.remote.dto.PocResponseDto
+import id.co.alphanusa.perisaipoc.data.remote.dto.RefreshTokenRequestDto
+import id.co.alphanusa.perisaipoc.data.remote.dto.RefreshTokenResponseDto
+import id.co.alphanusa.perisaipoc.data.remote.dto.UserResponseDto
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Query
 
-/**
- * Single consolidated Retrofit service holding every endpoint of the app.
- * (Sebelumnya tersebar di AuthApiService, UserApiService, DrawApiService,
- * LivekitApiService, CentrifugoApiService, DroneApiService.)
- */
+/** Satu-satunya kontrak REST aplikasi. */
 interface ApiService {
 
     // ---- Auth ----
     @POST("v1/mobile/auth/login")
-    suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
+    suspend fun login(@Body request: LoginRequestDto): Response<LoginResponseDto>
 
     @POST("v1/mobile/auth/refresh")
-    suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<RefreshTokenResponse>
+    suspend fun refreshToken(
+        @Body request: RefreshTokenRequestDto,
+    ): Response<RefreshTokenResponseDto>
 
-    // ---- Centrifugo ----
+    // ---- Realtime (Centrifugo) ----
     @POST("v1/mobile/auth/gentoken-centrifugo")
     suspend fun generateCentrifugoToken(
-        @Body request: CentrifugoTokenRequest,
-    ): Response<CentrifugoTokenResponse>
+        @Body request: CentrifugoTokenRequestDto,
+    ): Response<CentrifugoTokenResponseDto>
 
-    // ---- Draw ----
+    // ---- Peta ----
     @GET("v1/draw")
     suspend fun getDraw(
         @Query("long1") long1: Double,
         @Query("lat1") lat1: Double,
         @Query("long2") long2: Double,
         @Query("lat2") lat2: Double,
-    ): DrawResponse
+    ): DrawResponseDto
 
-    // ---- Livekit ----
+    // ---- Call (LiveKit) ----
     @GET("v1/livekit/join")
-    suspend fun generateLivekitToken(): Response<LivekitResponse>
+    suspend fun joinLivekitRoom(): Response<LivekitResponseDto>
 
     @GET("v1/livekit/participant")
-    suspend fun generateListParticipant(): Response<ParticipantsResponse>
+    suspend fun getLivekitParticipants(): Response<ParticipantsResponseDto>
 
-    // ---- User / POC info ----
+    // ---- Profil & perangkat (endpoint sama, bentuk respons berbeda) ----
     @GET("v1/mobile/auth/me")
-    suspend fun getMe(): Response<UserResponse>
+    suspend fun getUserProfile(): Response<UserResponseDto>
 
     @GET("v1/mobile/auth/me")
-    suspend fun getPocInfo(): Response<PocResponse>
+    suspend fun getPocDevice(): Response<PocResponseDto>
 }
