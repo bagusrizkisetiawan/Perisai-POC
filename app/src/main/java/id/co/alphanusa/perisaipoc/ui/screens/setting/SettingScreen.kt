@@ -1,4 +1,4 @@
-package id.co.alphanusa.perisaipoc.ui.screen.setting
+package id.co.alphanusa.perisaipoc.ui.screens.setting
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import id.co.alphanusa.perisaipoc.BuildConfig
 import id.co.alphanusa.perisaipoc.domain.model.AppConfig
-import id.co.alphanusa.perisaipoc.ui.viewmodel.SettingViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

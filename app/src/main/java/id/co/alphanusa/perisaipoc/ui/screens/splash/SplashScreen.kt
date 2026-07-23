@@ -1,4 +1,4 @@
-package id.co.alphanusa.perisaipoc.ui.screen.splash
+package id.co.alphanusa.perisaipoc.ui.screens.splash
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

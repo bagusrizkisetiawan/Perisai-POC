@@ -7,84 +7,40 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
-import id.co.alphanusa.perisaipoc.ui.screen.home.HomeScreen
-import id.co.alphanusa.perisaipoc.ui.screen.setting.SettingsScreen
-import id.co.alphanusa.perisaipoc.ui.screen.splash.SplashScreen
+import id.co.alphanusa.perisaipoc.ui.navigation.AppNavHost
 import id.co.alphanusa.perisaipoc.ui.theme.POCHuaweiStreamTheme
 
+/** Activity utama: hanya menyiapkan jendela lalu menyerahkan UI ke [AppNavHost]. */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        setupFullScreenWindow()
 
-        WindowInsetsControllerCompat(window, window.decorView).apply {
-            hide(WindowInsetsCompat.Type.systemBars())
-            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        }
-
-        WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = false
-        }
         setContent {
             POCHuaweiStreamTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    App(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding),
-                    )
+                    AppNavHost(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
     }
-}
 
-@Composable
-fun App(name: String, modifier: Modifier = Modifier) {
-    val navController = rememberNavController()
-    val context = LocalContext.current
-
-    NavHost(
-        navController = navController,
-        startDestination = "splash",
-    ) {
-        composable("splash") {
-            SplashScreen(
-                onFinished = {
-                    navController.navigate("home") {
-                        popUpTo("splash") { inclusive = true }
-                    }
-                },
-            )
-        }
-
-        composable("home") {
-            HomeScreen(
-                onNavigateToSettings = {
-                    navController.navigate("settings")
-                },
-            )
-        }
-
-        composable("settings") {
-            SettingsScreen(
-                onBackPressed = {
-                    navController.popBackStack()
-                },
-            )
+    private fun setupFullScreenWindow() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            isAppearanceLightStatusBars = false
         }
     }
 }

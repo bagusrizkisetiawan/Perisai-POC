@@ -1,4 +1,4 @@
-package id.co.alphanusa.perisaipoc.ui.screen.home
+package id.co.alphanusa.perisaipoc.ui.screens.home
 
 import android.Manifest
 import android.content.Intent
@@ -60,7 +60,6 @@ import id.co.alphanusa.perisaipoc.ui.components.QRCodeScannerDialog
 import id.co.alphanusa.perisaipoc.ui.components.backgroundColor
 import id.co.alphanusa.perisaipoc.ui.components.colorPrimary
 import id.co.alphanusa.perisaipoc.ui.components.dangerColor
-import id.co.alphanusa.perisaipoc.ui.viewmodel.AuthViewModel
 
 @Composable
 fun HomeScreen(authViewModel: AuthViewModel = hiltViewModel(), onNavigateToSettings: () -> Unit) {

@@ -1,4 +1,4 @@
-package id.co.alphanusa.perisaipoc.ui.viewmodel
+package id.co.alphanusa.perisaipoc.ui.screens.home
 
 import android.util.Log
 import androidx.lifecycle.ViewModel

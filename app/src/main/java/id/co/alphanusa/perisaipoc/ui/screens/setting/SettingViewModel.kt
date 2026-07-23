@@ -1,4 +1,4 @@
-package id.co.alphanusa.perisaipoc.ui.viewmodel
+package id.co.alphanusa.perisaipoc.ui.screens.setting
 
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
